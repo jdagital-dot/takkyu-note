@@ -1,0 +1,1925 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>卓球記録ノート</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#e53935">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="卓球ノート">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+    background: #f0f2f5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+  .phone {
+    width: 100%;
+    max-width: 390px;
+    height: 844px;
+    background: #fff;
+    border-radius: 40px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  @media (max-width: 500px) {
+    body { padding: 0; align-items: stretch; display: block; }
+    .phone {
+      max-width: 100%;
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      min-height: 100vh;
+      min-height: 100dvh;
+      border-radius: 0;
+      box-shadow: none;
+    }
+  }
+  .bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .screen {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ヘッダー */
+  .header {
+    padding: 16px 20px 12px;
+    background: #fff;
+    border-bottom: 1px solid #f0f0f0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header h1 { font-size: 22px; font-weight: 700; color: #1a1a2e; }
+  .header p { font-size: 13px; color: #888; margin-top: 2px; }
+
+  /* ホーム画面 */
+  .summary-bar {
+    display: flex;
+    gap: 12px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #fff;
+  }
+  .stat-box {
+    flex: 1;
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+  }
+  .stat-box .val { font-size: 24px; font-weight: 700; }
+  .stat-box .lbl { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #888;
+    padding: 16px 20px 8px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .match-card {
+    margin: 0 16px 10px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    display: flex;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .match-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+  .match-card:active { transform: scale(0.98); box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .card-stripe {
+    width: 5px;
+    flex-shrink: 0;
+  }
+  .stripe-win { background: #4CAF50; }
+  .stripe-lose { background: #F44336; }
+  .card-body { padding: 14px 16px; flex: 1; }
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+  .opponent-name { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+  .win-badge {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .badge-win { background: #e8f5e9; color: #2e7d32; }
+  .badge-lose { background: #ffebee; color: #c62828; }
+  .card-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .meta-tag {
+    font-size: 11px;
+    background: #f5f5f5;
+    color: #666;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .card-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+  }
+  .score-text { font-size: 15px; font-weight: 600; color: #333; }
+  .date-text { font-size: 12px; color: #aaa; }
+
+  /* FAB */
+  .fab {
+    position: absolute;
+    bottom: 88px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, #e53935, #c62828);
+    border-radius: 28px;
+    box-shadow: 0 4px 16px rgba(229,57,53,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 20;
+    font-size: 24px;
+    color: #fff;
+    transition: transform 0.1s;
+  }
+  .fab:active { transform: scale(0.92); }
+
+  /* 記録画面 */
+  .form-container { padding: 0 20px 20px; }
+  .form-section {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    margin-top: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .form-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #888;
+    letter-spacing: 0.5px;
+    margin-bottom: 14px;
+    text-transform: uppercase;
+  }
+  .form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .form-row:last-child { margin-bottom: 0; }
+  .form-row label { font-size: 13px; font-weight: 600; color: #444; }
+  .form-row input, .form-row select, .form-row textarea {
+    border: 1.5px solid #e8e8e8;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 16px;
+    font-family: inherit;
+    color: #1a1a2e;
+    background: #fafafa;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-row input:focus, .form-row select:focus, .form-row textarea:focus {
+    border-color: #e53935;
+    background: #fff;
+  }
+  .form-row textarea { resize: none; height: 80px; }
+
+  .type-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .type-btn {
+    border: 2px solid #e8e8e8;
+    border-radius: 10px;
+    padding: 12px 6px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .type-btn:active { transform: scale(0.96); }
+  .type-btn.selected {
+    border-color: #e53935;
+    background: #fff5f5;
+    color: #e53935;
+  }
+
+  .score-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .score-set {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #fafafa;
+    border-radius: 12px;
+    border: 1.5px solid #e8e8e8;
+    transition: border-color 0.2s;
+  }
+  .score-set.set-done-win { border-color: #4CAF50; background: #f1faf1; }
+  .score-set.set-done-lose { border-color: #F44336; background: #fff5f5; }
+  .score-set-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #999;
+    width: 36px;
+    flex-shrink: 0;
+    letter-spacing: 0.3px;
+  }
+  .score-pair {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    justify-content: center;
+  }
+  .score-player {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .score-player-label {
+    font-size: 10px;
+    color: #aaa;
+    font-weight: 600;
+  }
+  .score-input {
+    width: 64px;
+    height: 48px;
+    text-align: center;
+    font-size: 22px;
+    font-weight: 800;
+    color: #1a1a2e;
+    background: #fff;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 12px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s, background 0.15s;
+    -moz-appearance: textfield;
+  }
+  .score-input::-webkit-outer-spin-button,
+  .score-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .score-input:focus {
+    border-color: #e53935;
+    background: #fff5f5;
+  }
+  .score-sep { font-size: 16px; color: #ccc; font-weight: 700; padding: 0 4px; }
+  .set-result-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+    min-width: 32px;
+    text-align: center;
+  }
+  .set-result-win { background: #e8f5e9; color: #2e7d32; }
+  .set-result-lose { background: #ffebee; color: #c62828; }
+  .set-result-none { background: #f0f0f0; color: #ccc; }
+  .add-set-btn {
+    border: 2px dashed #e0e0e0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #aaa;
+    cursor: pointer;
+    background: none;
+    font-family: inherit;
+  }
+
+  .tag-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .tag-btn {
+    border: 2px solid #e8e8e8;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: #fafafa;
+    user-select: none;
+  }
+  .tag-btn:active { transform: scale(0.95); }
+  .tag-btn.selected {
+    border-color: #e53935;
+    background: #fff5f5;
+    color: #e53935;
+  }
+
+  .result-preview {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border-radius: 16px;
+    padding: 20px;
+    margin-top: 16px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .result-icon { font-size: 36px; }
+  .result-text h3 { font-size: 18px; font-weight: 700; }
+  .result-text p { font-size: 13px; opacity: 0.7; margin-top: 4px; }
+
+  .submit-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #e53935, #c62828);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 16px;
+    font-family: inherit;
+    box-shadow: 0 4px 16px rgba(229,57,53,0.3);
+    transition: transform 0.1s;
+  }
+  .submit-btn:active { transform: scale(0.98); }
+
+  /* 分析画面 */
+  .analysis-container { padding: 0 20px 20px; }
+  .analysis-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    margin-top: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .analysis-card h3 { font-size: 14px; font-weight: 700; color: #888; margin-bottom: 16px; letter-spacing: 0.5px; }
+
+  .big-stat {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .big-num { font-size: 48px; font-weight: 800; color: #1a1a2e; line-height: 1; }
+  .big-unit { font-size: 18px; color: #888; padding-bottom: 6px; }
+
+  .win-bar {
+    height: 10px;
+    background: #f0f0f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .win-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #66BB6A);
+    border-radius: 10px;
+    transition: width 1s ease;
+  }
+  .bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #aaa;
+  }
+
+  .type-chart { display: flex; flex-direction: column; gap: 12px; }
+  .type-row { display: flex; align-items: center; gap: 12px; }
+  .type-label { font-size: 13px; color: #555; width: 60px; flex-shrink: 0; font-weight: 600; }
+  .type-bar-wrap { flex: 1; }
+  .type-bar {
+    height: 8px;
+    background: #f0f0f0;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 2px;
+  }
+  .type-bar-fill {
+    height: 100%;
+    border-radius: 8px;
+  }
+  .bar-win { background: linear-gradient(90deg, #4CAF50, #66BB6A); }
+  .bar-neutral { background: linear-gradient(90deg, #FF9800, #FFB74D); }
+  .bar-lose { background: linear-gradient(90deg, #F44336, #EF5350); }
+  .type-pct { font-size: 13px; font-weight: 700; color: #333; }
+
+  .age-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .age-box {
+    background: #f9f9f9;
+    border-radius: 12px;
+    padding: 14px 10px;
+    text-align: center;
+  }
+  .age-box .pct { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+  .age-box .cat { font-size: 11px; color: #888; }
+  .pct-high { color: #2e7d32; }
+  .pct-mid { color: #e65100; }
+  .pct-low { color: #c62828; }
+
+  .tag-insights { display: flex; flex-direction: column; gap: 10px; }
+  .insight-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: #f9f9f9;
+    border-radius: 10px;
+  }
+  .insight-icon { font-size: 20px; }
+  .insight-text { flex: 1; }
+  .insight-text strong { font-size: 13px; color: #333; }
+  .insight-text span { font-size: 12px; color: #888; display: block; margin-top: 1px; }
+  .insight-badge {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .badge-strength { background: #e8f5e9; color: #2e7d32; }
+  .badge-weak { background: #ffebee; color: #c62828; }
+
+  /* モーダル */
+  .modal-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: flex-end;
+    animation: fadeIn 0.2s ease;
+  }
+  .modal-overlay.show { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: #fff;
+    border-radius: 24px 24px 0 0;
+    padding: 24px 20px 40px;
+    width: 100%;
+    max-height: 80%;
+    overflow-y: auto;
+    animation: slideUp 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+  .modal-close {
+    width: 32px;
+    height: 32px;
+    background: #f0f0f0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    transition: background 0.15s;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .modal-close:hover { background: #e8e8e8; }
+  .modal-close:active { background: #ddd; }
+  .modal-title { font-size: 20px; font-weight: 700; color: #1a1a2e; }
+  .modal-subtitle { font-size: 13px; color: #888; margin-top: 2px; }
+  /* 対戦相手ピッカー */
+  .opponent-field {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .opponent-field input, .opponent-field select {
+    flex: 1;
+  }
+  .pick-btn {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 10px;
+    background: #fafafa;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pick-btn:active { background: #f0f0f0; }
+  .picker-section-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #aaa;
+    letter-spacing: 0.5px;
+    padding: 12px 0 6px;
+    text-transform: uppercase;
+  }
+  .picker-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+    user-select: none;
+  }
+  .picker-row:hover { background: #fafafa; }
+  .picker-row:active { background: #f5f5f5; }
+  .picker-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #1a1a2e, #e53935);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .picker-info { flex: 1; }
+  .picker-name { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+  .picker-sub { font-size: 12px; color: #888; margin-top: 2px; }
+  .picker-type-tag {
+    font-size: 11px;
+    background: #fff5f5;
+    color: #e53935;
+    border-radius: 20px;
+    padding: 3px 8px;
+    font-weight: 600;
+  }
+  .picker-add-btn {
+    width: 100%;
+    border: 2px dashed #e0e0e0;
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #aaa;
+    background: none;
+    cursor: pointer;
+    font-family: inherit;
+    margin-top: 8px;
+  }
+  .picker-add-btn:active { background: #f9f9f9; }
+  .picker-empty {
+    text-align: center;
+    padding: 24px;
+    color: #ccc;
+    font-size: 13px;
+  }
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #f5f5f5;
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-label { font-size: 13px; color: #888; }
+  .detail-value { font-size: 13px; font-weight: 600; color: #333; }
+  .detail-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .detail-tag {
+    background: #fff5f5;
+    color: #e53935;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .detail-memo {
+    background: #f9f9f9;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 13px;
+    color: #555;
+    line-height: 1.6;
+    margin-top: 12px;
+  }
+
+  /* ボトムナビ */
+  .bottom-nav {
+    height: 72px;
+    background: #fff;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 30;
+  }
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    cursor: pointer;
+    transition: opacity 0.1s;
+  }
+  .nav-icon { width: 24px; height: 24px; }
+  .nav-icon svg { width: 24px; height: 24px; stroke: #bbb; transition: stroke 0.15s; }
+  .nav-label { font-size: 10px; font-weight: 600; color: #aaa; transition: color 0.15s; }
+  .nav-item.active .nav-label { color: #e53935; }
+  .nav-item.active .nav-icon svg { stroke: #e53935; }
+  .nav-item:active { opacity: 0.6; }
+
+  /* トグルスイッチ */
+  .toggle-switch { position: relative; display: inline-block; width: 48px; height: 26px; flex-shrink: 0; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: #e0e0e0; border-radius: 26px; transition: .2s; }
+  .toggle-slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+  input:checked + .toggle-slider { background: #e53935; }
+  input:checked + .toggle-slider:before { transform: translateX(22px); }
+
+  /* 成功トースト */
+  .toast {
+    position: absolute;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a2e;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 200;
+    opacity: 0;
+    transition: opacity 0.3s;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <!-- 認証画面（未ログイン時のみ表示） -->
+  <div class="screen" id="screen-auth" style="display:none; flex-direction:column; padding:24px; justify-content:center; flex:1;">
+    <div style="text-align:center; margin-bottom:32px;">
+      <div style="width:80px; height:80px; margin:0 auto 16px; background:#1a1a2e; border-radius:20px; display:flex; align-items:center; justify-content:center;">
+        <div style="width:48px; height:48px; background:#e53935; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:24px; font-weight:800;">卓</div>
+      </div>
+      <h1 style="font-size:22px; font-weight:700; color:#1a1a2e;">卓球記録ノート</h1>
+      <p style="font-size:13px; color:#888; margin-top:6px;">試合記録と分析がスマホで完結</p>
+    </div>
+    <div id="auth-form-container"></div>
+    <div id="auth-message" style="margin-top:16px; padding:12px; border-radius:10px; display:none; font-size:13px;"></div>
+  </div>
+
+  <!-- オンボーディング画面（最初の選手登録） -->
+  <div class="screen" id="screen-onboarding" style="display:none; flex-direction:column; padding:24px; flex:1;">
+    <div style="margin-top:24px; margin-bottom:24px;">
+      <h1 style="font-size:22px; font-weight:700; color:#1a1a2e;">選手を登録しましょう</h1>
+      <p style="font-size:13px; color:#888; margin-top:6px;">記録する選手の名前と学年を入力してください。後から追加・編集もできます。</p>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <div class="form-row">
+        <label>名前</label>
+        <input id="onboarding-name" type="text" placeholder="例：中田 太郎" required>
+      </div>
+      <div class="form-row">
+        <label>学年</label>
+        <select id="onboarding-grade" required>
+          <option value="">選択...</option>
+          <option value="u10">小学生以下</option>
+          <option value="7">小1</option><option value="8">小2</option><option value="9">小3</option>
+          <option value="10">小4</option><option value="11">小5</option><option value="12">小6</option>
+          <option value="13">中1</option><option value="14">中2</option><option value="15">中3</option>
+          <option value="hs">高校・一般</option>
+        </select>
+      </div>
+      <div id="onboarding-message" style="padding:10px; border-radius:8px; display:none; font-size:13px;"></div>
+      <button onclick="window.onboarding.submit()" style="margin-top:8px; padding:14px; background:linear-gradient(135deg,#e53935,#c62828); color:#fff; border:none; border-radius:12px; font-weight:700; font-size:15px; cursor:pointer; font-family:inherit;">登録して始める</button>
+    </div>
+  </div>
+
+  <!-- ホーム画面 -->
+  <div class="screen active" id="screen-home">
+    <div class="header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; position:relative;">
+      <div style="flex:1; min-width:0;">
+        <h1>試合日記</h1>
+        <p>2026年 ・ 通算 <span id="total-count">3</span>試合</p>
+      </div>
+      <div id="player-switcher-mount" style="flex-shrink:0;"></div>
+      <button onclick="window.performLogout && window.performLogout()" style="background:none; border:1px solid #e0e0e0; color:#888; font-size:11px; cursor:pointer; padding:6px 10px; border-radius:8px; font-family:inherit; flex-shrink:0;">ログアウト</button>
+    </div>
+    <div class="summary-bar">
+      <div class="stat-box">
+        <div class="val" id="total-win-rate">67%</div>
+        <div class="lbl">総合勝率</div>
+      </div>
+      <div class="stat-box">
+        <div class="val" id="win-count">2</div>
+        <div class="lbl">勝ち</div>
+      </div>
+      <div class="stat-box">
+        <div class="val" id="lose-count">1</div>
+        <div class="lbl">負け</div>
+      </div>
+    </div>
+    <div class="section-title">最近の試合</div>
+    <div id="match-list"></div>
+  </div>
+
+  <!-- 記録画面 -->
+  <div class="screen" id="screen-record">
+    <div class="header">
+      <h1>＋ 試合を記録</h1>
+    </div>
+    <div class="form-container">
+      <div class="form-section">
+        <div class="form-section-title" style="display:flex; justify-content:space-between; align-items:center;">
+          対戦情報
+          <button onclick="openAddressBook()" style="border:none; background:none; font-size:12px; color:#e53935; font-weight:700; cursor:pointer; font-family:inherit;">📋 アドレス帳</button>
+        </div>
+        <div class="form-row">
+          <label>相手の名前</label>
+          <div class="opponent-field">
+            <input type="text" id="opponent-name" placeholder="例：田中 太郎">
+            <button class="pick-btn" onclick="openPicker()" title="履歴から選ぶ">🔍</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>対戦チーム名</label>
+          <input type="text" id="team-name" placeholder="例：新潟市立○○中学校">
+        </div>
+        <div class="form-row" style="flex-direction: row; gap: 12px;">
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+            <label>相手の学年</label>
+            <select id="opponent-grade">
+              <option value="">選択...</option>
+              <option value="u10">小学生以下</option>
+              <option value="7">小1</option>
+              <option value="8">小2</option>
+              <option value="9">小3</option>
+              <option value="10">小4</option>
+              <option value="11">小5</option>
+              <option value="12">小6</option>
+              <option value="13">中1</option>
+              <option value="14">中2</option>
+              <option value="15">中3</option>
+              <option value="hs">高校・一般</option>
+            </select>
+          </div>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+            <label>相手の県</label>
+            <select id="opponent-pref">
+              <option value="">選択...</option>
+              <option>北海道</option><option>青森</option><option>岩手</option>
+              <option>宮城</option><option>秋田</option><option>山形</option>
+              <option>福島</option><option>茨城</option><option>栃木</option>
+              <option>群馬</option><option>埼玉</option><option>千葉</option>
+              <option>東京</option><option>神奈川</option><option>新潟</option>
+              <option>富山</option><option>石川</option><option>福井</option>
+              <option>山梨</option><option>長野</option><option>岐阜</option>
+              <option>静岡</option><option>愛知</option><option>三重</option>
+              <option>滋賀</option><option>京都</option><option>大阪</option>
+              <option>兵庫</option><option>奈良</option><option>和歌山</option>
+              <option>鳥取</option><option>島根</option><option>岡山</option>
+              <option>広島</option><option>山口</option><option>徳島</option>
+              <option>香川</option><option>愛媛</option><option>高知</option>
+              <option>福岡</option><option>佐賀</option><option>長崎</option>
+              <option>熊本</option><option>大分</option><option>宮崎</option>
+              <option>鹿児島</option><option>沖縄</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>試合種別</label>
+          <select id="match-type">
+            <option>公式戦（個人）</option>
+            <option>公式戦（団体）</option>
+            <option>練習試合</option>
+            <option>オープン大会</option>
+          </select>
+        </div>
+      </div>
+
+<div class="form-section">
+        <div class="form-section-title">相手の戦型</div>
+
+        <div style="font-size:12px; font-weight:700; color:#aaa; letter-spacing:0.5px; margin-bottom:8px;">利き手</div>
+        <div style="display:flex; gap:8px; margin-bottom:16px;">
+          <div class="type-btn hand-btn" data-hand="右利き" onclick="selectHand(this,'右利き')" style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0v5"/><path d="M14 10V4a2 2 0 0 0-4 0v6"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+            右利き
+          </div>
+          <div class="type-btn hand-btn" data-hand="左利き" onclick="selectHand(this,'左利き')" style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:scaleX(-1);"><path d="M18 11V6a2 2 0 0 0-4 0v5"/><path d="M14 10V4a2 2 0 0 0-4 0v6"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+            左利き
+          </div>
+        </div>
+
+        <div style="font-size:12px; font-weight:700; color:#aaa; letter-spacing:0.5px; margin-bottom:8px;">戦型</div>
+        <div class="type-grid" style="grid-template-columns: repeat(2, 1fr);">
+          <div class="type-btn" data-type="シェークハンド裏裏" onclick="selectType(this,'シェークハンド裏裏')">シェーク裏裏</div>
+          <div class="type-btn" data-type="ペンホルダー" onclick="selectType(this,'ペンホルダー')">ペンホルダー</div>
+          <div class="type-btn" data-type="フォア表" onclick="selectType(this,'フォア表')">フォア表</div>
+          <div class="type-btn" data-type="バック表" onclick="selectType(this,'バック表')">バック表</div>
+          <div class="type-btn" data-type="バック粒高" onclick="selectType(this,'バック粒高')">バック粒高</div>
+          <div class="type-btn" data-type="ペン粒" onclick="selectType(this,'ペン粒')">ペン粒</div>
+          <div class="type-btn" data-type="カットマン（粒高）" onclick="selectType(this,'カットマン（粒高）')">カット（粒高）</div>
+          <div class="type-btn" data-type="カットマン（表）" onclick="selectType(this,'カットマン（表）')">カット（表）</div>
+          <div class="type-btn" data-type="その他" onclick="selectType(this,'その他')" style="grid-column: span 2;">その他</div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">スコア</div>
+        <div class="score-inputs" id="score-inputs"></div>
+        <button class="add-set-btn" onclick="addSet()" style="margin-top: 10px;">＋ セット追加</button>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">この試合のポイント（複数選択）</div>
+        <div class="tag-grid">
+          <div class="tag-btn" onclick="toggleTag(this)">サーブ</div>
+          <div class="tag-btn" onclick="toggleTag(this)">3球目</div>
+          <div class="tag-btn" onclick="toggleTag(this)">5球目</div>
+          <div class="tag-btn" onclick="toggleTag(this)">レシーブ</div>
+          <div class="tag-btn" onclick="toggleTag(this)">ラリー</div>
+          <div class="tag-btn" onclick="toggleTag(this)">フットワーク</div>
+          <div class="tag-btn" onclick="toggleTag(this)">バック攻め</div>
+          <div class="tag-btn" onclick="toggleTag(this)">フォア攻め</div>
+          <div class="tag-btn" onclick="toggleTag(this)">回転読み</div>
+          <div class="tag-btn" onclick="toggleTag(this)">メンタル</div>
+          <div class="tag-btn" onclick="toggleTag(this)">コース</div>
+          <div class="tag-btn" onclick="toggleTag(this)">ミドル攻め</div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">メモ（任意）</div>
+        <div class="form-row">
+          <textarea id="match-memo" placeholder="気づいたこと、次に活かしたいことなど..."></textarea>
+        </div>
+      </div>
+
+      <button class="submit-btn" onclick="submitRecord()">記録する</button>
+    </div>
+  </div>
+
+  <!-- 分析画面 -->
+  <div class="screen" id="screen-analysis">
+    <div class="header">
+      <h1>分析</h1>
+      <p>直近の試合データから自動集計</p>
+    </div>
+    <div class="analysis-container">
+
+      <div class="analysis-card">
+        <h3>総合勝率</h3>
+        <div class="big-stat">
+          <div class="big-num" id="analysis-rate">67</div>
+          <div class="big-unit">%</div>
+        </div>
+        <div class="win-bar">
+          <div class="win-bar-fill" id="analysis-bar" style="width: 67%"></div>
+        </div>
+        <div class="bar-label">
+          <span id="analysis-wins">2勝</span>
+          <span id="analysis-total">全3試合</span>
+        </div>
+      </div>
+
+      <div class="analysis-card">
+        <h3>戦型別勝率</h3>
+        <div class="type-chart" id="type-chart">
+          <div class="type-row">
+            <span class="type-label">右シェーク</span>
+            <div class="type-bar-wrap">
+              <div class="type-bar"><div class="type-bar-fill bar-win" style="width:75%"></div></div>
+            </div>
+            <span class="type-pct">75%</span>
+          </div>
+          <div class="type-row">
+            <span class="type-label">カット</span>
+            <div class="type-bar-wrap">
+              <div class="type-bar"><div class="type-bar-fill bar-neutral" style="width:50%"></div></div>
+            </div>
+            <span class="type-pct">50%</span>
+          </div>
+          <div class="type-row">
+            <span class="type-label">表ソフト</span>
+            <div class="type-bar-wrap">
+              <div class="type-bar"><div class="type-bar-fill bar-lose" style="width:33%"></div></div>
+            </div>
+            <span class="type-pct">33%</span>
+          </div>
+          <div class="type-row">
+            <span class="type-label">粒高</span>
+            <div class="type-bar-wrap">
+              <div class="type-bar"><div class="type-bar-fill bar-lose" style="width:0%"></div></div>
+            </div>
+            <span class="type-pct">0%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="analysis-card">
+        <h3>年齢カテゴリ別勝率</h3>
+        <div class="age-grid">
+          <div class="age-box">
+            <div class="pct pct-high">80%</div>
+            <div class="cat">年下</div>
+          </div>
+          <div class="age-box">
+            <div class="pct pct-mid">65%</div>
+            <div class="cat">同世代</div>
+          </div>
+          <div class="age-box">
+            <div class="pct pct-low">40%</div>
+            <div class="cat">年上</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="analysis-card">
+        <h3>傾向・強み・課題</h3>
+        <div class="tag-insights">
+          <div class="insight-row">
+            <span class="insight-icon">💪</span>
+            <div class="insight-text">
+              <strong>サーブ・3球目</strong>
+              <span>勝ち試合でよく出るパターン</span>
+            </div>
+            <span class="insight-badge badge-strength">強み</span>
+          </div>
+          <div class="insight-row">
+            <span class="insight-icon">⚠️</span>
+            <div class="insight-text">
+              <strong>レシーブ</strong>
+              <span>負け試合で頻出タグ</span>
+            </div>
+            <span class="insight-badge badge-weak">課題</span>
+          </div>
+          <div class="insight-row">
+            <span class="insight-icon">⚠️</span>
+            <div class="insight-text">
+              <strong>ラリー</strong>
+              <span>長いラリーで失点が多い傾向</span>
+            </div>
+            <span class="insight-badge badge-weak">課題</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FABボタン -->
+  <div class="fab" id="fab" onclick="showScreen('record')">＋</div>
+
+  <!-- 詳細モーダル -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal" id="modal-content"></div>
+  </div>
+
+  <!-- 対戦相手ピッカーモーダル -->
+  <div class="modal-overlay" id="picker-modal">
+    <div class="modal" id="picker-content" style="height:75%; display:flex; flex-direction:column; padding-bottom:16px;"></div>
+  </div>
+
+  <!-- アドレス帳モーダル -->
+  <div class="modal-overlay" id="ab-modal">
+    <div class="modal" id="ab-content" style="max-height:85%;"></div>
+  </div>
+
+  <!-- 記録確認モーダル -->
+  <div class="modal-overlay" id="confirm-modal">
+    <div class="modal" id="confirm-content"></div>
+  </div>
+
+  <!-- 選手追加・編集モーダル -->
+  <div class="modal-overlay" id="player-edit-modal">
+    <div class="modal" id="player-edit-content"></div>
+  </div>
+
+  <!-- トースト -->
+  <div class="toast" id="toast">✓ 試合を記録しました</div>
+
+  <!-- ボトムナビ -->
+  <div class="bottom-nav">
+    <div class="nav-item active" id="nav-home" onclick="showScreen('home')">
+      <span class="nav-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 9.5L12 3l10 6.5V21a1 1 0 01-1 1H3a1 1 0 01-1-1V9.5z"/><path d="M9 22V12h6v10"/>
+        </svg>
+      </span>
+      <span class="nav-label">日記</span>
+    </div>
+    <div class="nav-item" id="nav-record" onclick="showScreen('record')">
+      <span class="nav-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+        </svg>
+      </span>
+      <span class="nav-label">記録</span>
+    </div>
+    <div class="nav-item" id="nav-analysis" onclick="showScreen('analysis')">
+      <span class="nav-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+      </span>
+      <span class="nav-label">分析</span>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/js/main.js"></script>
+<script>
+// Service Worker 登録
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(e => console.log('SW registration failed', e));
+  });
+}
+
+// サンプルデータ
+let matches = [];
+
+let selectedType = '';
+let selectedHand = '';
+let selectedTags = [];
+let editingMatchId = null;
+let setCount = 0;
+let setScores = [];
+
+// アドレス帳（クラウド同期、Phase 1D）
+let addressBook = [];
+
+function prefOptions(selected) {
+  const prefs = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
+  return '<option value="">選択...</option>' + prefs.map(p => `<option${p===selected?' selected':''}>${p}</option>`).join('');
+}
+
+function typeOptions(selected) {
+  const types = ['シェークハンド裏裏','ペンホルダー','フォア表','バック表','バック粒高','ペン粒','カットマン（粒高）','カットマン（表）','その他'];
+  return '<option value="">選択...</option>' + types.map(t => `<option${t===selected?' selected':''}>${t}</option>`).join('');
+}
+
+// 最近対戦した選手（履歴から重複除いて取得）
+function getRecentOpponents() {
+  const seen = new Set();
+  return matches
+    .filter(m => m.opponent)
+    .filter(m => { if (seen.has(m.opponent)) return false; seen.add(m.opponent); return true; })
+    .slice(0, 5)
+    .map(m => ({ name: m.opponent, team: m.team, age: m.age, pref: m.pref, type: m.type }));
+}
+
+function fillOpponent(p) {
+  document.getElementById('opponent-name').value = p.name || '';
+  document.getElementById('team-name').value = p.team || '';
+  document.getElementById('opponent-grade').value = p.age ? gradeVal(p.age) : '';
+  document.getElementById('opponent-pref').value = p.pref || '';
+
+  // 利き手
+  selectedHand = p.hand || '';
+  document.querySelectorAll('.hand-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.hand === selectedHand);
+  });
+
+  // 戦型
+  selectedType = p.type || '';
+  document.querySelectorAll('.type-btn:not(.hand-btn)').forEach(b => {
+    b.classList.toggle('selected', b.dataset.type === selectedType);
+  });
+
+  closePicker();
+  closeAbModal();
+}
+
+function renderPickerRow(p, showStar) {
+  const initial = p.name ? p.name[0] : '?';
+  return `
+    <div class="picker-row" onclick='fillOpponent(${JSON.stringify(p)})'>
+      <div class="picker-avatar">${initial}</div>
+      <div class="picker-info">
+        <div class="picker-name">${p.name || p.team}</div>
+        <div class="picker-sub">${p.team} ・ ${p.pref} ・ ${gradeLabel(p.age)}</div>
+      </div>
+      <span class="picker-type-tag">${p.type}</span>
+    </div>
+  `;
+}
+
+let pickerQuery = '';
+let pickerRegion = '';
+let pickerGrade = '';
+let pickerTeam = '';
+
+const REGION_MAP = {
+  '上越': ['上越','妙高','糸魚川'],
+  '中越': ['長岡','柏崎','小千谷','魚沼','南魚沼','十日町','見附','三条','燕'],
+  '下越': ['新潟','新発田','村上','阿賀野','五泉','聖籠'],
+};
+
+function getRegion(pref, team) {
+  if (pref !== '新潟') return 'その他';
+  for (const [region, cities] of Object.entries(REGION_MAP)) {
+    if (cities.some(c => team && team.includes(c))) return region;
+  }
+  return 'その他';
+}
+
+const GRADES = [
+  { label: '小学生以下', val: 'u10' },
+  { label: '小1', val: '7' },
+  { label: '小2', val: '8' },
+  { label: '小3', val: '9' },
+  { label: '小4', val: '10' },
+  { label: '小5', val: '11' },
+  { label: '小6', val: '12' },
+  { label: '中1', val: '13' },
+  { label: '中2', val: '14' },
+  { label: '中3', val: '15' },
+  { label: '高校・一般', val: 'hs' },
+];
+
+function gradeVal(age) {
+  if (age <= 6)  return 'u10';
+  if (age >= 16) return 'hs';
+  return String(age);
+}
+
+function gradeValToAge(val) {
+  if (!val || val === 'u10') return 10;
+  if (val === 'hs') return 16;
+  return parseInt(val) || 14;
+}
+
+function gradeLabel(age) {
+  const v = gradeVal(age);
+  return GRADES.find(g => g.val === v)?.label || `${age}歳`;
+}
+
+function openPicker() {
+  pickerQuery = '';
+  pickerRegion = '';
+  pickerGrade = '';
+  pickerTeam = '';
+  renderPicker();
+  document.getElementById('picker-modal').classList.add('show');
+  setTimeout(() => document.getElementById('picker-search') && document.getElementById('picker-search').focus(), 100);
+}
+
+function renderPicker() {
+  const recent = getRecentOpponents();
+  const abNames = new Set(addressBook.map(p => p.name));
+  const allCandidates = [
+    ...addressBook,
+    ...recent.filter(p => !abNames.has(p.name))
+  ];
+
+  // チーム名の選択肢
+  const teams = [...new Set(allCandidates.map(p => p.team).filter(Boolean))].sort();
+
+  // 絞り込み
+  const q = pickerQuery.trim();
+  const filtered = allCandidates.filter(p => {
+    const matchQ = !q || p.name.includes(q) || (p.team && p.team.includes(q));
+    const matchRegion = !pickerRegion || getRegion(p.pref, p.team) === pickerRegion;
+    const matchGrade = !pickerGrade || gradeVal(p.age) === pickerGrade;
+    const matchTeam = !pickerTeam || p.team === pickerTeam;
+    return matchQ && matchRegion && matchGrade && matchTeam;
+  });
+
+  // 地域が選ばれていればその地域のチームだけ、なければ全チーム
+  const teamsInRegion = [...new Set(
+    allCandidates
+      .filter(p => !pickerRegion || getRegion(p.pref, p.team) === pickerRegion)
+      .map(p => p.team).filter(Boolean)
+  )].sort();
+
+  const gradeOptions = [{ label: '学年', val: '' }, ...GRADES].map(g =>
+    `<option value="${g.val}"${pickerGrade===g.val?' selected':''}>${g.label}</option>`
+  ).join('');
+
+  // チームタグエリアは固定高さ（2行分）で中身だけ変わる
+  const teamTagsHtml = teamsInRegion.length === 0
+    ? `<span style="font-size:12px; color:#ccc;">${pickerRegion ? 'チームなし' : '地域を選ぶとチームが出ます'}</span>`
+    : teamsInRegion.map(t => `
+        <button onclick="pickerTeam=pickerTeam==='${t}'?'':'${t}'; renderPicker();"
+          style="border:1.5px solid ${pickerTeam===t?'#e53935':'#e0e0e0'}; background:${pickerTeam===t?'#fff5f5':'#fff'}; color:${pickerTeam===t?'#e53935':'#666'}; border-radius:20px; padding:4px 10px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap;">
+          ${t}
+        </button>`).join('');
+
+  const listHtml = filtered.length === 0
+    ? `<div class="picker-empty">該当する選手が見つかりません</div>`
+    : filtered.map(p => renderPickerRow(p)).join('');
+
+  const html = `
+    <!-- 固定ヘッダー部分 -->
+    <div style="flex-shrink:0;">
+      <div class="modal-header" style="margin-bottom:8px;">
+        <div class="modal-title">対戦相手を選ぶ</div>
+        <div class="modal-close" onclick="closePicker()">×</div>
+      </div>
+
+      <input id="picker-search" type="text" placeholder="名前で検索..."
+        value="${pickerQuery}"
+        oninput="pickerQuery=this.value; renderPicker();"
+        style="width:100%; border:1.5px solid #e8e8e8; border-radius:10px; padding:10px 14px; font-size:14px; font-family:inherit; outline:none; margin-bottom:10px;">
+
+      <!-- 地域タグ（常に1行固定） -->
+      <div style="display:flex; gap:6px; margin-bottom:8px;">
+        ${['上越','中越','下越','その他'].map(r => `
+          <button onclick="pickerRegion=pickerRegion==='${r}'?'':'${r}'; pickerTeam=''; renderPicker();"
+            style="flex:1; border:1.5px solid ${pickerRegion===r?'#e53935':'#e0e0e0'}; background:${pickerRegion===r?'#fff5f5':'#fafafa'}; color:${pickerRegion===r?'#e53935':'#888'}; border-radius:20px; padding:6px 0; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; text-align:center;">
+            ${r}
+          </button>`).join('')}
+      </div>
+
+      <!-- チームタグ（固定高さ・内部スクロール） -->
+      <div style="height:52px; overflow-x:auto; overflow-y:hidden; display:flex; align-items:center; gap:6px; padding:4px 2px; margin-bottom:8px; scrollbar-width:none;">
+        ${teamTagsHtml}
+      </div>
+
+      <!-- 学年ドロップダウン -->
+      <select onchange="pickerGrade=this.value; renderPicker();"
+        style="width:100%; border:1.5px solid ${pickerGrade?'#e53935':'#e8e8e8'}; border-radius:10px; padding:8px 12px; font-size:13px; font-family:inherit; outline:none; background:${pickerGrade?'#fff5f5':'#fafafa'}; color:${pickerGrade?'#e53935':'#555'}; margin-bottom:8px;">
+        ${gradeOptions}
+      </select>
+
+      <div style="font-size:12px; color:#aaa; margin-bottom:4px;">${filtered.length}件</div>
+    </div>
+
+    <!-- スクロール可能な結果リスト -->
+    <div style="flex:1; overflow-y:auto; margin: 0 -20px; padding: 0 20px;">
+      ${listHtml}
+    </div>
+  `;
+
+  document.getElementById('picker-content').innerHTML = html;
+}
+
+function closePicker() {
+  document.getElementById('picker-modal').classList.remove('show');
+}
+
+// アドレス帳管理
+function openAddressBook() {
+  renderAddressBook();
+  document.getElementById('ab-modal').classList.add('show');
+}
+
+function closeAbModal() {
+  document.getElementById('ab-modal').classList.remove('show');
+}
+
+function renderAddressBook() {
+  let html = `
+    <div class="modal-header" style="margin-bottom:4px;">
+      <div class="modal-title">アドレス帳</div>
+      <div class="modal-close" onclick="closeAbModal()">×</div>
+    </div>
+  `;
+  if (addressBook.length === 0) {
+    html += `<div class="picker-empty">登録済みの選手はいません</div>`;
+  } else {
+    addressBook.forEach((p, i) => {
+      const initial = p.name ? p.name[0] : '?';
+      html += `
+        <div onclick='fillOpponent(${JSON.stringify(p)})' class="picker-row" style="background:#fafafa; margin-bottom:8px; border-radius:12px;">
+          <div class="picker-avatar">${initial}</div>
+          <div class="picker-info">
+            <div class="picker-name">${p.name}</div>
+            <div class="picker-sub">${p.team} ・ ${p.pref} ・ ${gradeLabel(p.age)} ・ ${p.hand ? p.hand + ' / ' : ''}${p.type}</div>
+          </div>
+          <button onclick="event.stopPropagation(); deleteFromAB(${i})" style="border:none; background:#f5f5f5; color:#aaa; border-radius:8px; padding:6px 10px; font-size:12px; cursor:pointer; font-family:inherit; flex-shrink:0;">削除</button>
+        </div>
+      `;
+    });
+  }
+  html += `
+    <div style="margin-top:16px; border-top:1px solid #f0f0f0; padding-top:16px;">
+      <div style="font-size:13px; font-weight:700; color:#555; margin-bottom:12px;">新規登録</div>
+
+      <div class="form-row">
+        <label>選手名</label>
+        <input id="ab-name" type="text" placeholder="例：田中 太郎">
+      </div>
+      <div class="form-row">
+        <label>チーム名</label>
+        <input id="ab-team" type="text" placeholder="例：新潟市立○○中学校">
+      </div>
+      <div style="display:flex; gap:12px; margin-bottom:14px;">
+        <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
+          <label style="font-size:13px; font-weight:600; color:#444;">学年</label>
+          <select id="ab-grade" class="form-row" style="margin-bottom:0;">
+            <option value="">選択...</option>
+            <option value="u10">小学生以下</option>
+            <option value="7">小1</option><option value="8">小2</option><option value="9">小3</option>
+            <option value="10">小4</option><option value="11">小5</option><option value="12">小6</option>
+            <option value="13">中1</option><option value="14">中2</option><option value="15">中3</option>
+            <option value="hs">高校・一般</option>
+          </select>
+        </div>
+        <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
+          <label style="font-size:13px; font-weight:600; color:#444;">県</label>
+          <select id="ab-pref">${prefOptions('')}</select>
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <div style="font-size:12px; font-weight:700; color:#aaa; letter-spacing:0.5px; margin-bottom:8px;">利き手</div>
+        <div style="display:flex; gap:8px;">
+          <div class="type-btn ab-hand-btn" data-hand="右利き" onclick="selectAbHand(this,'右利き')" style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0v5"/><path d="M14 10V4a2 2 0 0 0-4 0v6"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+            右利き
+          </div>
+          <div class="type-btn ab-hand-btn" data-hand="左利き" onclick="selectAbHand(this,'左利き')" style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:scaleX(-1);"><path d="M18 11V6a2 2 0 0 0-4 0v5"/><path d="M14 10V4a2 2 0 0 0-4 0v6"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+            左利き
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <div style="font-size:12px; font-weight:700; color:#aaa; letter-spacing:0.5px; margin-bottom:8px;">戦型</div>
+        <div class="type-grid" style="grid-template-columns: repeat(2, 1fr);">
+          <div class="type-btn ab-type-btn" data-type="シェークハンド裏裏" onclick="selectAbType(this,'シェークハンド裏裏')">シェーク裏裏</div>
+          <div class="type-btn ab-type-btn" data-type="ペンホルダー" onclick="selectAbType(this,'ペンホルダー')">ペンホルダー</div>
+          <div class="type-btn ab-type-btn" data-type="フォア表" onclick="selectAbType(this,'フォア表')">フォア表</div>
+          <div class="type-btn ab-type-btn" data-type="バック表" onclick="selectAbType(this,'バック表')">バック表</div>
+          <div class="type-btn ab-type-btn" data-type="バック粒高" onclick="selectAbType(this,'バック粒高')">バック粒高</div>
+          <div class="type-btn ab-type-btn" data-type="ペン粒" onclick="selectAbType(this,'ペン粒')">ペン粒</div>
+          <div class="type-btn ab-type-btn" data-type="カットマン（粒高）" onclick="selectAbType(this,'カットマン（粒高）')">カット（粒高）</div>
+          <div class="type-btn ab-type-btn" data-type="カットマン（表）" onclick="selectAbType(this,'カットマン（表）')">カット（表）</div>
+          <div class="type-btn ab-type-btn" data-type="その他" onclick="selectAbType(this,'その他')" style="grid-column: span 2;">その他</div>
+        </div>
+      </div>
+
+      <button onclick="addToAB()" style="width:100%; background:linear-gradient(135deg,#e53935,#c62828); color:#fff; border:none; border-radius:14px; padding:16px; font-size:16px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:0 4px 16px rgba(229,57,53,0.3);">登録する</button>
+    </div>
+  `;
+  document.getElementById('ab-content').innerHTML = html;
+}
+
+async function addToAB() {
+  const name = document.getElementById('ab-name').value.trim();
+  const team = document.getElementById('ab-team').value.trim();
+  const age  = gradeValToAge(document.getElementById('ab-grade').value);
+  const pref = document.getElementById('ab-pref').value;
+  if (!name) return;
+  try {
+    await window.opponentsService.create({ name, team, age, pref, hand: abSelectedHand, type: abSelectedType });
+    addressBook = window.opponentsService.getAll();
+  } catch (e) {
+    alert('登録に失敗しました：' + e.message);
+    return;
+  }
+  abSelectedHand = '';
+  abSelectedType = '';
+  renderAddressBook();
+}
+
+async function deleteFromAB(idx) {
+  const item = addressBook[idx];
+  if (!item) return;
+  try {
+    await window.opponentsService.delete(item.id);
+    addressBook = window.opponentsService.getAll();
+  } catch (e) {
+    alert('削除に失敗しました：' + e.message);
+    return;
+  }
+  renderAddressBook();
+}
+
+// 記録送信時に履歴として自動保存（addressBookに未登録なら追加しない、履歴はmatchesから取得）
+
+function isSetDone(my, opp) {
+  if (my >= 11 && my - opp >= 2) return 'win';
+  if (opp >= 11 && opp - my >= 2) return 'lose';
+  return null;
+}
+
+function renderSetRow(idx) {
+  const wrap = document.getElementById('score-inputs');
+  const existing = wrap.querySelector(`[data-set="${idx}"]`);
+  const s = setScores[idx];
+  const done = isSetDone(s.my, s.opp);
+
+  const html = `
+    <div class="score-set ${done === 'win' ? 'set-done-win' : done === 'lose' ? 'set-done-lose' : ''}" data-set="${idx}">
+      <span class="score-set-label">第${idx+1}セット</span>
+      <div class="score-pair">
+        <div class="score-player">
+          <span class="score-player-label">自分</span>
+          <input class="score-input" type="number" inputmode="numeric" pattern="[0-9]*" min="0" max="30"
+            data-side="my" value="${s.my}" oninput="updateScore(${idx},'my',this.value)" onfocus="this.select()">
+        </div>
+        <span class="score-sep">−</span>
+        <div class="score-player">
+          <span class="score-player-label">相手</span>
+          <input class="score-input" type="number" inputmode="numeric" pattern="[0-9]*" min="0" max="30"
+            data-side="opp" value="${s.opp}" oninput="updateScore(${idx},'opp',this.value)" onfocus="this.select()">
+        </div>
+      </div>
+      <span class="set-result-badge ${done === 'win' ? 'set-result-win' : done === 'lose' ? 'set-result-lose' : 'set-result-none'}">
+        ${done === 'win' ? '勝ち' : done === 'lose' ? '負け' : '—'}
+      </span>
+    </div>
+  `;
+
+  if (existing) {
+    existing.outerHTML = html;
+  } else {
+    wrap.insertAdjacentHTML('beforeend', html);
+  }
+}
+
+function autoCalcOther(val) {
+  if (val <= 9)  return 11;     // 相手が勝った標準
+  if (val === 10) return 12;    // デュース・相手が12で勝ち
+  if (val === 11) return 9;     // 自分が11-9で勝ち
+  return val - 2;               // デュース・自分が2点差で勝ち
+}
+
+function updateScore(idx, side, value) {
+  const v = Math.max(0, Math.min(30, parseInt(value) || 0));
+  const s = setScores[idx];
+  const other = side === 'my' ? 'opp' : 'my';
+  s[side] = v;
+
+  // 値があれば相手側を自動計算
+  if (v > 0) {
+    s[other] = autoCalcOther(v);
+    const otherInput = document.querySelector(`[data-set="${idx}"] input[data-side="${other}"]`);
+    if (otherInput && document.activeElement !== otherInput) otherInput.value = s[other];
+  }
+
+  // フォーカス保持のため行全体を再描画せず badge と枠だけ更新
+  const row = document.querySelector(`[data-set="${idx}"]`);
+  if (!row) return;
+  const done = isSetDone(s.my, s.opp);
+  row.classList.toggle('set-done-win', done === 'win');
+  row.classList.toggle('set-done-lose', done === 'lose');
+  const badge = row.querySelector('.set-result-badge');
+  badge.className = 'set-result-badge ' + (done === 'win' ? 'set-result-win' : done === 'lose' ? 'set-result-lose' : 'set-result-none');
+  badge.textContent = done === 'win' ? '勝ち' : done === 'lose' ? '負け' : '—';
+}
+
+function initSets() {
+  setScores = [];
+  setCount = 0;
+  document.getElementById('score-inputs').innerHTML = '';
+  for (let i = 0; i < 3; i++) addSet();
+}
+
+function renderMatches() {
+  const list = document.getElementById('match-list');
+  list.innerHTML = '';
+  const wins = matches.filter(m => m.win).length;
+  document.getElementById('total-count').textContent = matches.length;
+  document.getElementById('total-win-rate').textContent = matches.length > 0 ? Math.round(wins/matches.length*100) + '%' : '0%';
+  document.getElementById('win-count').textContent = wins;
+  document.getElementById('lose-count').textContent = matches.length - wins;
+
+  // 分析も更新
+  document.getElementById('analysis-rate').textContent = matches.length > 0 ? Math.round(wins/matches.length*100) : 0;
+  document.getElementById('analysis-bar').style.width = (matches.length > 0 ? Math.round(wins/matches.length*100) : 0) + '%';
+  document.getElementById('analysis-wins').textContent = wins + '勝';
+  document.getElementById('analysis-total').textContent = '全' + matches.length + '試合';
+
+  matches.forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'match-card';
+    card.innerHTML = `
+      <div class="card-stripe ${m.win ? 'stripe-win' : 'stripe-lose'}"></div>
+      <div class="card-body">
+        <div class="card-top">
+          <div class="opponent-name">${m.opponent || m.team}</div>
+          <span class="win-badge ${m.win ? 'badge-win' : 'badge-lose'}">${m.win ? '勝ち' : '負け'}</span>
+        </div>
+        <div class="card-meta">
+          ${m.hand ? `<span class="meta-tag">${m.hand}</span>` : ''}
+          <span class="meta-tag">${m.type}</span>
+          <span class="meta-tag">${m.pref}</span>
+          <span class="meta-tag">${m.matchType}</span>
+        </div>
+        <div class="card-bottom">
+          <span class="score-text">${m.score}</span>
+          <span class="date-text">${m.date}</span>
+        </div>
+      </div>
+    `;
+    card.onclick = () => showDetail(m);
+    list.appendChild(card);
+  });
+  saveToStorage();
+}
+
+function showDetail(m) {
+  const ageLabel = getAgeCategory(m.age);
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">${m.opponent || m.team}</div>
+        <div class="modal-subtitle">${m.date} ・ ${m.matchType}</div>
+      </div>
+      <div class="modal-close" onclick="closeModal()">×</div>
+    </div>
+    <span class="win-badge ${m.win ? 'badge-win' : 'badge-lose'}" style="font-size:16px; padding:6px 16px;">${m.win ? '✓ 勝ち' : '✗ 負け'}</span>
+    <div style="margin-top: 16px;">
+      <div class="detail-row"><span class="detail-label">チーム</span><span class="detail-value">${m.team}</span></div>
+      <div class="detail-row"><span class="detail-label">相手</span><span class="detail-value">${m.opponent || '—'}</span></div>
+      <div class="detail-row"><span class="detail-label">年齢</span><span class="detail-value">${m.age}歳（${ageLabel}）</span></div>
+      <div class="detail-row"><span class="detail-label">県</span><span class="detail-value">${m.pref}</span></div>
+      ${m.hand ? `<div class="detail-row"><span class="detail-label">利き手</span><span class="detail-value">${m.hand}</span></div>` : ''}
+      <div class="detail-row"><span class="detail-label">戦型</span><span class="detail-value">${m.type}</span></div>
+      <div class="detail-row"><span class="detail-label">スコア</span><span class="detail-value">${m.score}</span></div>
+    </div>
+    <div class="detail-tags">${m.tags.map(t => `<span class="detail-tag">${t}</span>`).join('')}</div>
+    ${m.memo ? `<div class="detail-memo">${m.memo}</div>` : ''}
+    <div style="display:flex; gap:10px; margin-top:20px; border-top:1px solid #f0f0f0; padding-top:16px;">
+      <button onclick="confirmDeleteMatch(${m.id})" style="flex:1; border:1.5px solid #ffcdd2; background:#fff5f5; color:#e53935; border-radius:12px; padding:12px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">削除</button>
+      <button onclick="startEditMatch(${m.id})" style="flex:2; background:linear-gradient(135deg,#1a1a2e,#16213e); color:#fff; border:none; border-radius:12px; padding:12px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">編集する</button>
+    </div>
+  `;
+  document.getElementById('modal').classList.add('show');
+}
+
+function getAgeCategory(age) {
+  // 仮に自分の年齢を14歳とする
+  const myAge = 14;
+  if (age < myAge - 1) return '年下';
+  if (age > myAge + 1) return '年上';
+  return '同世代';
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+}
+
+function confirmDeleteMatch(id) {
+  const m = matches.find(m => m.id === id);
+  if (!m) return;
+  document.getElementById('confirm-content').innerHTML = `
+    <div class="modal-header" style="margin-bottom:12px;">
+      <div class="modal-title">試合を削除しますか？</div>
+      <div class="modal-close" onclick="closeConfirm()">×</div>
+    </div>
+    <div style="font-size:13px; color:#888; line-height:1.6;">
+      <strong style="color:#1a1a2e;">${m.opponent || m.team}</strong> との試合記録を削除します。この操作は取り消せません。
+    </div>
+    <div style="display:flex; gap:10px; margin-top:20px;">
+      <button onclick="closeConfirm()" style="flex:1; border:1.5px solid #e0e0e0; background:#fff; border-radius:12px; padding:14px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; color:#666;">キャンセル</button>
+      <button onclick="doDeleteMatch(${id})" style="flex:1; background:linear-gradient(135deg,#e53935,#c62828); color:#fff; border:none; border-radius:12px; padding:14px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">削除する</button>
+    </div>
+  `;
+  document.getElementById('confirm-modal').classList.add('show');
+}
+
+async function doDeleteMatch(id) {
+  try {
+    await window.matchesService.delete(id);
+    matches = window.matchesService.getCurrent();
+  } catch (e) {
+    alert('削除に失敗しました：' + e.message);
+    return;
+  }
+  renderMatches();
+  closeConfirm();
+  closeModal();
+  showScreen('home');
+  const toast = document.getElementById('toast');
+  toast.textContent = '試合を削除しました';
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+function parseScoreText(scoreText) {
+  if (!scoreText || scoreText === '—') return [];
+  return scoreText.split(', ').map(s => {
+    const parts = s.split('-').map(Number);
+    return { my: parts[0] || 0, opp: parts[1] || 0 };
+  });
+}
+
+function startEditMatch(id) {
+  const m = matches.find(m => m.id === id);
+  if (!m) return;
+  editingMatchId = id;
+
+  document.getElementById('opponent-name').value = m.opponent || '';
+  document.getElementById('team-name').value = m.team || '';
+  document.getElementById('opponent-grade').value = m.age ? gradeVal(m.age) : '';
+  document.getElementById('opponent-pref').value = m.pref || '';
+  document.getElementById('match-type').value = m.matchType || '';
+  document.getElementById('match-memo').value = m.memo || '';
+
+  selectedHand = m.hand || '';
+  document.querySelectorAll('.hand-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.hand === selectedHand);
+  });
+
+  selectedType = m.type || '';
+  document.querySelectorAll('.type-btn:not(.hand-btn)').forEach(b => {
+    b.classList.toggle('selected', b.dataset.type === selectedType);
+  });
+
+  selectedTags = [...(m.tags || [])];
+  document.querySelectorAll('.tag-btn').forEach(b => {
+    b.classList.toggle('selected', selectedTags.includes(b.textContent.trim()));
+  });
+
+  const parsed = parseScoreText(m.score);
+  setScores = [];
+  setCount = 0;
+  document.getElementById('score-inputs').innerHTML = '';
+  if (parsed.length > 0) {
+    parsed.forEach(s => { setScores.push(s); setCount++; renderSetRow(setScores.length - 1); });
+  } else {
+    for (let i = 0; i < 3; i++) addSet();
+  }
+
+  document.querySelector('.submit-btn').textContent = '更新する';
+  closeModal();
+  showScreen('record');
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  document.getElementById('fab').style.display = name === 'home' ? 'flex' : 'none';
+}
+
+let abSelectedHand = '';
+let abSelectedType = '';
+
+function selectAbHand(el, hand) {
+  document.querySelectorAll('.ab-hand-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  abSelectedHand = hand;
+}
+
+function selectAbType(el, type) {
+  document.querySelectorAll('.ab-type-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  abSelectedType = type;
+}
+
+function selectHand(el, hand) {
+  document.querySelectorAll('.hand-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedHand = hand;
+}
+
+function selectType(el, type) {
+  document.querySelectorAll('.type-btn:not(.hand-btn):not(.ab-hand-btn):not(.ab-type-btn)').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedType = type;
+}
+
+function toggleTag(el) {
+  el.classList.toggle('selected');
+  const tag = el.textContent;
+  if (el.classList.contains('selected')) {
+    selectedTags.push(tag);
+  } else {
+    selectedTags = selectedTags.filter(t => t !== tag);
+  }
+}
+
+function addSet() {
+  const idx = setCount;
+  setScores.push({ my: 0, opp: 0 });
+  setCount++;
+  renderSetRow(idx);
+}
+
+let _pendingMatchForAb = null;
+
+async function submitRecord() {
+  let scoreText = '';
+  let myWins = 0, oppWins = 0;
+  setScores.forEach(s => {
+    const done = isSetDone(s.my, s.opp);
+    if (!done) return;
+    if (scoreText) scoreText += ', ';
+    scoreText += `${s.my}-${s.opp}`;
+    if (done === 'win') myWins++; else oppWins++;
+  });
+
+  const newMatch = {
+    team: document.getElementById('team-name').value || '未入力',
+    opponent: document.getElementById('opponent-name').value.trim(),
+    age: gradeValToAge(document.getElementById('opponent-grade').value),
+    pref: document.getElementById('opponent-pref').value || '不明',
+    hand: selectedHand || '',
+    type: selectedType || '不明',
+    matchType: document.getElementById('match-type').value,
+    score: scoreText || '—',
+    win: myWins > oppWins,
+    tags: [...selectedTags],
+    memo: document.getElementById('match-memo').value
+  };
+
+  const isEditing = editingMatchId !== null;
+  let savedMatch = null;
+  try {
+    if (isEditing) {
+      savedMatch = await window.matchesService.update(editingMatchId, newMatch);
+    } else {
+      savedMatch = await window.matchesService.create(newMatch);
+    }
+    editingMatchId = null;
+    matches = window.matchesService.getCurrent();
+  } catch (e) {
+    alert('保存に失敗しました：' + e.message);
+    return;
+  }
+  renderMatches();
+
+  // リセット
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+  selectedHand = '';
+  document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('team-name').value = '';
+  document.getElementById('opponent-name').value = '';
+  document.getElementById('opponent-grade').value = '';
+  document.getElementById('match-memo').value = '';
+  selectedType = '';
+  selectedTags = [];
+  document.querySelector('.submit-btn').textContent = '記録する';
+  initSets();
+
+  showScreen('home');
+
+  const toast = document.getElementById('toast');
+  toast.textContent = isEditing ? '✓ 試合を更新しました' : (newMatch.win ? '✓ 勝ち試合を記録しました！' : '✓ 試合を記録しました');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+
+  // アドレス帳登録チェック（新規記録のみ）
+  if (!isEditing && savedMatch && savedMatch.opponent) {
+    const alreadyKnown = addressBook.some(p => isSamePerson(savedMatch, p));
+    if (!alreadyKnown) {
+      _pendingMatchForAb = savedMatch;
+      showAddConfirm(savedMatch);
+    }
+  }
+}
+
+function normalizeName(name) {
+  return (name || '').replace(/[\s　]+/g, '');
+}
+
+function isSamePerson(match, p) {
+  const n = normalizeName(match.opponent);
+  const pn = normalizeName(p.name);
+  const exactName = n === pn;
+  const partialName = n && pn && (pn.includes(n) || n.includes(pn));
+  const teamMatch = match.team && p.team && match.team === p.team;
+  const gradeMatch = match.age && p.age && gradeVal(match.age) === gradeVal(p.age);
+  return exactName || (partialName && (teamMatch || gradeMatch));
+}
+
+function showAddConfirm(match) {
+  document.getElementById('confirm-content').innerHTML = `
+    <div class="modal-header" style="margin-bottom:12px;">
+      <div class="modal-title">アドレス帳に追加しますか？</div>
+      <div class="modal-close" onclick="closeConfirm()">×</div>
+    </div>
+    <div style="font-size:13px; color:#888; line-height:1.6;">
+      <strong style="color:#1a1a2e;">${match.opponent}</strong> さんをアドレス帳に登録すると、次回から素早く選択できます。
+    </div>
+    <div style="display:flex; gap:10px; margin-top:20px;">
+      <button onclick="closeConfirm()" style="flex:1; border:1.5px solid #e0e0e0; background:#fff; border-radius:12px; padding:14px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; color:#666;">追加しない</button>
+      <button onclick="addPendingToAb()" style="flex:2; background:linear-gradient(135deg,#e53935,#c62828); color:#fff; border:none; border-radius:12px; padding:14px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit;">追加する</button>
+    </div>
+  `;
+  setTimeout(() => document.getElementById('confirm-modal').classList.add('show'), 400);
+}
+
+
+async function addPendingToAb() {
+  if (_pendingMatchForAb) {
+    try {
+      await window.opponentsService.create({
+        name: _pendingMatchForAb.opponent,
+        team: _pendingMatchForAb.team,
+        age: _pendingMatchForAb.age,
+        pref: _pendingMatchForAb.pref,
+        hand: _pendingMatchForAb.hand,
+        type: _pendingMatchForAb.type
+      });
+      addressBook = window.opponentsService.getAll();
+    } catch (e) {
+      console.error('Failed to add to address book:', e);
+    }
+    _pendingMatchForAb = null;
+  }
+  closeConfirm();
+}
+
+function closeConfirm() {
+  document.getElementById('confirm-modal').classList.remove('show');
+  _pendingMatchForAb = null;
+}
+
+// モーダル外クリックで閉じる
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+document.getElementById('picker-modal').addEventListener('click', function(e) {
+  if (e.target === this) closePicker();
+});
+document.getElementById('ab-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeAbModal();
+});
+document.getElementById('confirm-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeConfirm();
+});
+document.getElementById('player-edit-modal').addEventListener('click', function(e) {
+  if (e.target === this && window.playerEdit) window.playerEdit.close();
+});
+
+function saveToStorage() {
+  // Phase 1D: matches/addressBook はサービス層がクラウド+キャッシュへ保存するため no-op
+}
+
+function loadFromStorage() {
+  // Phase 1D: サービス層のキャッシュから読み込む
+  if (window.matchesService) {
+    matches = window.matchesService.getCurrent();
+  }
+  if (window.opponentsService) {
+    addressBook = window.opponentsService.getAll();
+  }
+}
+
+// main.js から呼ばれるため、関数を window に公開
+// renderMatches は呼ばれるたびに最新キャッシュを matches に同期する
+// 注: 関数宣言は window のプロパティになるので、上書きする前にローカル参照を保持する
+const _renderMatchesOriginal = renderMatches;
+window.renderMatches = function() {
+  loadFromStorage();
+  _renderMatchesOriginal();
+};
+window.showScreen = showScreen;
+
+loadFromStorage();
+initSets();
+</script>
+</body>
+</html>
