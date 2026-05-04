@@ -3,6 +3,7 @@
 スマホで使える卓球の試合記録・分析PWAアプリ。
 
 **本番:** https://pingpong-app-one.vercel.app
+**リポジトリ:** https://github.com/jdagital-dot/takkyu-note
 
 ## 機能
 
