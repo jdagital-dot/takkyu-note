@@ -9,6 +9,15 @@ export const AUTH_STORAGE_KEY = 'sb-mxxajbziopkgjktccotg-auth-token';
 // navigator.locks のリロード直後ハング対策（タブ間競合は session storage で十分整合する）
 const noOpLock = (_name, _acquireTimeout, fn) => fn();
 
+// 全リクエストに15秒タイムアウトを付け、「保存中…」のまま永久に固まるのを防ぐ
+// （supabase-js が独自の signal を渡してくる場合はそちらを尊重）
+function fetchWithTimeout(url, options = {}) {
+  if (!options.signal && typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+    return fetch(url, { ...options, signal: AbortSignal.timeout(15000) });
+  }
+  return fetch(url, options);
+}
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
@@ -17,5 +26,8 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
     lock: noOpLock,
+  },
+  global: {
+    fetch: fetchWithTimeout,
   },
 });
