@@ -1421,7 +1421,7 @@ async function addToAB() {
     await window.opponentsService.create({ name, team, age, pref, hand: abSelectedHand, type: abSelectedType });
     addressBook = window.opponentsService.getAll();
   } catch (e) {
-    alert('登録に失敗しました：' + e.message);
+    showToast('登録に失敗しました：' + (e.message || '通信エラー'), true);
     return;
   }
   abSelectedHand = '';
@@ -1436,7 +1436,7 @@ async function deleteFromAB(idx) {
     await window.opponentsService.delete(item.id);
     addressBook = window.opponentsService.getAll();
   } catch (e) {
-    alert('削除に失敗しました：' + e.message);
+    showToast('削除に失敗しました：' + (e.message || '通信エラー'), true);
     return;
   }
   renderAddressBook();
@@ -1640,17 +1640,14 @@ async function doDeleteMatch(id) {
     await window.matchesService.delete(id);
     matches = window.matchesService.getCurrent();
   } catch (e) {
-    alert('削除に失敗しました：' + e.message);
+    showToast('削除に失敗しました：' + (e.message || '通信エラー'), true);
     return;
   }
   renderMatches();
   closeConfirm();
   closeModal();
   showScreen('home');
-  const toast = document.getElementById('toast');
-  toast.textContent = '試合を削除しました';
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2500);
+  showToast('試合を削除しました');
 }
 
 function parseScoreText(scoreText) {
@@ -1760,7 +1757,18 @@ function addSet() {
 
 let _pendingMatchForAb = null;
 
+function showToast(message, isError = false) {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.style.background = isError ? '#c62828' : '#1a1a2e';
+  toast.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toast.classList.remove('show'), isError ? 5000 : 2500);
+}
+
 async function submitRecord() {
+  const btn = document.querySelector('.submit-btn');
+  if (btn.dataset.busy === '1') return; // 二重送信防止
   let scoreText = '';
   let myWins = 0, oppWins = 0;
   setScores.forEach(s => {
@@ -1787,6 +1795,9 @@ async function submitRecord() {
 
   const isEditing = editingMatchId !== null;
   let savedMatch = null;
+  const prevLabel = btn.textContent;
+  btn.dataset.busy = '1';
+  btn.textContent = '保存中…';
   try {
     if (isEditing) {
       savedMatch = await window.matchesService.update(editingMatchId, newMatch);
@@ -1796,8 +1807,12 @@ async function submitRecord() {
     editingMatchId = null;
     matches = window.matchesService.getCurrent();
   } catch (e) {
-    alert('保存に失敗しました：' + e.message);
+    // iOS PWA では alert が表示されないことがあるため画面内トーストで通知
+    showToast('保存に失敗しました：' + (e.message || '通信エラー'), true);
     return;
+  } finally {
+    btn.dataset.busy = '';
+    btn.textContent = prevLabel;
   }
   renderMatches();
 
@@ -1816,10 +1831,7 @@ async function submitRecord() {
 
   showScreen('home');
 
-  const toast = document.getElementById('toast');
-  toast.textContent = isEditing ? '✓ 試合を更新しました' : (newMatch.win ? '✓ 勝ち試合を記録しました！' : '✓ 試合を記録しました');
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2500);
+  showToast(isEditing ? '✓ 試合を更新しました' : (newMatch.win ? '✓ 勝ち試合を記録しました！' : '✓ 試合を記録しました'));
 
   // アドレス帳登録チェック（新規記録のみ）
   if (!isEditing && savedMatch && savedMatch.opponent) {
