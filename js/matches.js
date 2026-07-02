@@ -40,7 +40,6 @@ export async function createMatch(playerId, match) {
 
 export async function updateMatch(id, updates) {
   const row = {
-    date: updates.date,
     opponent_name: updates.opponent || null,
     opponent_team: updates.team || null,
     opponent_age: updates.age || null,
@@ -53,6 +52,8 @@ export async function updateMatch(id, updates) {
     tags: updates.tags || [],
     memo: updates.memo || null,
   };
+  // date は指定されたときだけ更新（編集フローでは元の試合日を保持する）
+  if (updates.date) row.date = updates.date;
   const { data, error } = await supabase
     .from('matches')
     .update(row)

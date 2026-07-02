@@ -1,4 +1,4 @@
-import { supabase } from './supabase-client.js';
+import { supabase, AUTH_STORAGE_KEY } from './supabase-client.js';
 import * as auth from './auth.js';
 import * as account from './account.js';
 import * as authUI from './auth-ui.js';
@@ -20,19 +20,19 @@ window.playerState = playerState;
 window.playerUI = playerUI;
 window.playerEdit = playerEdit;
 
-async function performLogout() {
-  console.log('[logout] clearing local state');
-  // ローカル状態を即時クリア
+function clearLocalState() {
   lastUid = null;
   playerState.clearCurrentPlayer();
   playerUI.clearCache();
   matchesCache.clearAll();
   opponentsCache.clearAll();
+}
+
+async function performLogout() {
+  console.log('[logout] clearing local state');
+  clearLocalState();
   // Supabase の localStorage キーを直接削除（signOut のハング対策）
-  try {
-    const ref = 'mxxajbziopkgjktccotg';
-    localStorage.removeItem(`sb-${ref}-auth-token`);
-  } catch {}
+  try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch {}
   authUI.showAuthScreen();
   // バックグラウンドで Supabase にも通知
   auth.signOut().catch(e => console.error('[logout] signOut failed:', e));
@@ -99,9 +99,7 @@ function getSessionWithTimeout(ms = 3000) {
 }
 
 function hasStoredSession() {
-  // Supabase v2 が localStorage に保存するキー
-  const ref = 'mxxajbziopkgjktccotg';
-  const raw = localStorage.getItem(`sb-${ref}-auth-token`);
+  const raw = localStorage.getItem(AUTH_STORAGE_KEY);
   if (!raw) return false;
   try {
     const data = JSON.parse(raw);
@@ -227,11 +225,7 @@ auth.onAuthStateChange(async (event, session) => {
     await routeAfterLogin(session.user);
   }
   if (event === 'SIGNED_OUT') {
-    lastUid = null;
-    playerState.clearCurrentPlayer();
-    playerUI.clearCache();
-    matchesCache.clearAll();
-    opponentsCache.clearAll();
+    clearLocalState();
     authUI.showAuthScreen();
   }
 });
