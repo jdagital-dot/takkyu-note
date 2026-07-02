@@ -1,0 +1,25 @@
+# Supabase 無料プランの自動一時停止（約1週間非アクティブで pause）を防ぐため、
+# 毎日1回 REST API に軽いクエリを打つ。
+# anon key は RLS 前提の公開キー（js/supabase-client.js にも埋め込み済み）なので直書きで問題ない。
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: '0 21 * * *' # 毎日 06:00 JST
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query Supabase REST API
+        env:
+          ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14eGFqYnppb3BrZ2prdGNjb3RnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMTk0OTEsImV4cCI6MjA5MjY5NTQ5MX0.yh3BsgO7rbGXShBQkU-GC_TZPPaS3KIE2uSiW13f1PA
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://mxxajbziopkgjktccotg.supabase.co/rest/v1/players?select=id&limit=1" \
+            -H "apikey: ${ANON_KEY}" \
+            -H "Authorization: Bearer ${ANON_KEY}")
+          echo "Supabase response: ${status}"
+          # 200 = 正常。それ以外（pause 中の 5xx や DNS 失敗）はジョブを失敗させて通知に気づけるようにする
+          [ "${status}" = "200" ]
