@@ -55,6 +55,9 @@ function renderAuthForm() {
       <button onclick="authUI.setMode('${isLogin ? 'signup' : 'login'}')" style="padding:8px; background:none; border:none; color:#666; font-size:13px; cursor:pointer; text-decoration:underline; font-family:inherit;">
         ${isLogin ? '新規登録はこちら' : 'すでにアカウントをお持ちの方'}
       </button>
+      <div style="font-size:11px; color:#999; text-align:center; line-height:1.6;">
+        登録・ログインすると<a href="/terms.html" style="color:#888;">利用規約</a>と<a href="/privacy.html" style="color:#888;">プライバシーポリシー</a>に<br>同意したものとみなされます
+      </div>
     </div>
   `;
 }

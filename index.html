@@ -423,7 +423,7 @@
 
   .type-chart { display: flex; flex-direction: column; gap: 12px; }
   .type-row { display: flex; align-items: center; gap: 12px; }
-  .type-label { font-size: 13px; color: #555; width: 60px; flex-shrink: 0; font-weight: 600; }
+  .type-label { font-size: 12px; color: #555; width: 82px; flex-shrink: 0; font-weight: 600; }
   .type-bar-wrap { flex: 1; }
   .type-bar {
     height: 8px;
@@ -708,15 +708,32 @@
 <div class="phone">
   <!-- 認証画面（未ログイン時のみ表示） -->
   <div class="screen" id="screen-auth" style="display:none; flex-direction:column; padding:24px; justify-content:center; flex:1;">
-    <div style="text-align:center; margin-bottom:32px;">
-      <div style="width:80px; height:80px; margin:0 auto 16px; background:#1a1a2e; border-radius:20px; display:flex; align-items:center; justify-content:center;">
-        <div style="width:48px; height:48px; background:#e53935; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:24px; font-weight:800;">卓</div>
+    <div style="text-align:center; margin-bottom:20px;">
+      <div style="width:72px; height:72px; margin:0 auto 14px; background:#1a1a2e; border-radius:18px; display:flex; align-items:center; justify-content:center;">
+        <div style="width:44px; height:44px; background:#e53935; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:22px; font-weight:800;">卓</div>
       </div>
       <h1 style="font-size:22px; font-weight:700; color:#1a1a2e;">卓球記録ノート</h1>
-      <p style="font-size:13px; color:#888; margin-top:6px;">試合記録と分析がスマホで完結</p>
+      <p style="font-size:13px; color:#888; margin-top:4px;">試合記録と分析がスマホで完結・無料</p>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:7px; margin-bottom:20px;">
+      <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:#555;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
+        試合のスコア・戦型・気づきをサクッと記録
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:#555;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
+        勝率・戦型別の強みと課題を自動で分析
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:#555;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
+        兄弟の記録もひとつのアカウントで管理
+      </div>
     </div>
     <div id="auth-form-container"></div>
     <div id="auth-message" style="margin-top:16px; padding:12px; border-radius:10px; display:none; font-size:13px;"></div>
+    <div style="margin-top:20px; text-align:center; font-size:11px; color:#aaa;">
+      <a href="/terms.html" style="color:#888;">利用規約</a> ・ <a href="/privacy.html" style="color:#888;">プライバシーポリシー</a>
+    </div>
   </div>
 
   <!-- オンボーディング画面（最初の選手登録） -->
@@ -772,6 +789,9 @@
     </div>
     <div class="section-title">最近の試合</div>
     <div id="match-list"></div>
+    <div style="text-align:center; padding:20px 0 8px;">
+      <a href="mailto:joetsu.pingpong@gmail.com?subject=%E3%80%90%E5%8D%93%E7%90%83%E8%A8%98%E9%8C%B2%E3%83%8E%E3%83%BC%E3%83%88%E3%80%91%E3%81%94%E6%84%8F%E8%A6%8B%E3%83%BB%E4%B8%8D%E5%85%B7%E5%90%88%E5%A0%B1%E5%91%8A" style="font-size:12px; color:#aaa;">ご意見・不具合報告はこちら</a>
+    </div>
   </div>
 
   <!-- 記録画面 -->
@@ -920,100 +940,41 @@
     </div>
     <div class="analysis-container">
 
-      <div class="analysis-card">
-        <h3>総合勝率</h3>
-        <div class="big-stat">
-          <div class="big-num" id="analysis-rate">67</div>
-          <div class="big-unit">%</div>
-        </div>
-        <div class="win-bar">
-          <div class="win-bar-fill" id="analysis-bar" style="width: 67%"></div>
-        </div>
-        <div class="bar-label">
-          <span id="analysis-wins">2勝</span>
-          <span id="analysis-total">全3試合</span>
-        </div>
+      <!-- 試合0件のときの空状態 -->
+      <div id="analysis-empty" style="display:none; text-align:center; padding:60px 24px; color:#aaa;">
+        <div style="font-size:15px; font-weight:600; color:#888; margin-bottom:8px;">まだ分析データがありません</div>
+        <div style="font-size:13px; line-height:1.7;">試合を記録すると、勝率や戦型別の<br>強み・弱みが自動で見えてきます。</div>
       </div>
 
-      <div class="analysis-card">
-        <h3>戦型別勝率</h3>
-        <div class="type-chart" id="type-chart">
-          <div class="type-row">
-            <span class="type-label">右シェーク</span>
-            <div class="type-bar-wrap">
-              <div class="type-bar"><div class="type-bar-fill bar-win" style="width:75%"></div></div>
-            </div>
-            <span class="type-pct">75%</span>
+      <div id="analysis-content">
+        <div class="analysis-card">
+          <h3>総合勝率</h3>
+          <div class="big-stat">
+            <div class="big-num" id="analysis-rate">0</div>
+            <div class="big-unit">%</div>
           </div>
-          <div class="type-row">
-            <span class="type-label">カット</span>
-            <div class="type-bar-wrap">
-              <div class="type-bar"><div class="type-bar-fill bar-neutral" style="width:50%"></div></div>
-            </div>
-            <span class="type-pct">50%</span>
+          <div class="win-bar">
+            <div class="win-bar-fill" id="analysis-bar" style="width: 0%"></div>
           </div>
-          <div class="type-row">
-            <span class="type-label">表ソフト</span>
-            <div class="type-bar-wrap">
-              <div class="type-bar"><div class="type-bar-fill bar-lose" style="width:33%"></div></div>
-            </div>
-            <span class="type-pct">33%</span>
-          </div>
-          <div class="type-row">
-            <span class="type-label">粒高</span>
-            <div class="type-bar-wrap">
-              <div class="type-bar"><div class="type-bar-fill bar-lose" style="width:0%"></div></div>
-            </div>
-            <span class="type-pct">0%</span>
+          <div class="bar-label">
+            <span id="analysis-wins">0勝</span>
+            <span id="analysis-total">全0試合</span>
           </div>
         </div>
-      </div>
 
-      <div class="analysis-card">
-        <h3>年齢カテゴリ別勝率</h3>
-        <div class="age-grid">
-          <div class="age-box">
-            <div class="pct pct-high">80%</div>
-            <div class="cat">年下</div>
-          </div>
-          <div class="age-box">
-            <div class="pct pct-mid">65%</div>
-            <div class="cat">同世代</div>
-          </div>
-          <div class="age-box">
-            <div class="pct pct-low">40%</div>
-            <div class="cat">年上</div>
-          </div>
+        <div class="analysis-card">
+          <h3>戦型別勝率</h3>
+          <div class="type-chart" id="type-chart"></div>
         </div>
-      </div>
 
-      <div class="analysis-card">
-        <h3>傾向・強み・課題</h3>
-        <div class="tag-insights">
-          <div class="insight-row">
-            <span class="insight-icon">💪</span>
-            <div class="insight-text">
-              <strong>サーブ・3球目</strong>
-              <span>勝ち試合でよく出るパターン</span>
-            </div>
-            <span class="insight-badge badge-strength">強み</span>
-          </div>
-          <div class="insight-row">
-            <span class="insight-icon">⚠️</span>
-            <div class="insight-text">
-              <strong>レシーブ</strong>
-              <span>負け試合で頻出タグ</span>
-            </div>
-            <span class="insight-badge badge-weak">課題</span>
-          </div>
-          <div class="insight-row">
-            <span class="insight-icon">⚠️</span>
-            <div class="insight-text">
-              <strong>ラリー</strong>
-              <span>長いラリーで失点が多い傾向</span>
-            </div>
-            <span class="insight-badge badge-weak">課題</span>
-          </div>
+        <div class="analysis-card">
+          <h3>年齢カテゴリ別勝率</h3>
+          <div class="age-grid" id="age-grid"></div>
+        </div>
+
+        <div class="analysis-card">
+          <h3>傾向・強み・課題</h3>
+          <div class="tag-insights" id="tag-insights"></div>
         </div>
       </div>
 
@@ -1533,11 +1494,8 @@ function renderMatches() {
   document.getElementById('win-count').textContent = wins;
   document.getElementById('lose-count').textContent = matches.length - wins;
 
-  // 分析も更新
-  document.getElementById('analysis-rate').textContent = matches.length > 0 ? Math.round(wins/matches.length*100) : 0;
-  document.getElementById('analysis-bar').style.width = (matches.length > 0 ? Math.round(wins/matches.length*100) : 0) + '%';
-  document.getElementById('analysis-wins').textContent = wins + '勝';
-  document.getElementById('analysis-total').textContent = '全' + matches.length + '試合';
+  // 分析画面も更新
+  renderAnalysis();
 
   matches.forEach(m => {
     const card = document.createElement('div');
@@ -1565,6 +1523,115 @@ function renderMatches() {
     list.appendChild(card);
   });
   saveToStorage();
+}
+
+const TYPE_SHORT_NAMES = {
+  'シェークハンド裏裏': 'シェーク裏裏',
+  'カットマン（粒高）': 'カット粒',
+  'カットマン（表）': 'カット表',
+  'ペンホルダー': 'ペン',
+};
+
+function rateBarClass(rate) {
+  if (rate >= 60) return 'bar-win';
+  if (rate >= 40) return 'bar-neutral';
+  return 'bar-lose';
+}
+
+function ratePctClass(rate) {
+  if (rate >= 60) return 'pct-high';
+  if (rate >= 40) return 'pct-mid';
+  return 'pct-low';
+}
+
+function renderAnalysis() {
+  const hasData = matches.length > 0;
+  document.getElementById('analysis-empty').style.display = hasData ? 'none' : 'block';
+  document.getElementById('analysis-content').style.display = hasData ? 'block' : 'none';
+  if (!hasData) return;
+
+  // 総合勝率
+  const wins = matches.filter(m => m.win).length;
+  const rate = Math.round(wins / matches.length * 100);
+  document.getElementById('analysis-rate').textContent = rate;
+  document.getElementById('analysis-bar').style.width = rate + '%';
+  document.getElementById('analysis-wins').textContent = wins + '勝';
+  document.getElementById('analysis-total').textContent = '全' + matches.length + '試合';
+
+  // 戦型別勝率（2試合以上ある戦型のみ・試合数の多い順）
+  const byType = {};
+  matches.forEach(m => {
+    const t = m.type;
+    if (!t || t === '不明') return;
+    if (!byType[t]) byType[t] = { total: 0, wins: 0 };
+    byType[t].total++;
+    if (m.win) byType[t].wins++;
+  });
+  const typeRows = Object.entries(byType)
+    .filter(([, s]) => s.total >= 2)
+    .sort((a, b) => b[1].total - a[1].total);
+  const typeChart = document.getElementById('type-chart');
+  if (typeRows.length === 0) {
+    typeChart.innerHTML = '<div style="font-size:13px; color:#aaa; text-align:center; padding:8px;">同じ戦型と2試合以上すると表示されます</div>';
+  } else {
+    typeChart.innerHTML = typeRows.map(([type, s]) => {
+      const r = Math.round(s.wins / s.total * 100);
+      return `
+      <div class="type-row">
+        <span class="type-label">${TYPE_SHORT_NAMES[type] || type}</span>
+        <div class="type-bar-wrap">
+          <div class="type-bar"><div class="type-bar-fill ${rateBarClass(r)}" style="width:${r}%"></div></div>
+        </div>
+        <span class="type-pct">${r}% <span style="font-size:10px; color:#aaa; font-weight:600;">(${s.total})</span></span>
+      </div>`;
+    }).join('');
+  }
+
+  // 年齢カテゴリ別勝率
+  const cats = { '年下': { t: 0, w: 0 }, '同世代': { t: 0, w: 0 }, '年上': { t: 0, w: 0 } };
+  matches.forEach(m => {
+    const c = getAgeCategory(m.age);
+    cats[c].t++;
+    if (m.win) cats[c].w++;
+  });
+  document.getElementById('age-grid').innerHTML = Object.entries(cats).map(([cat, s]) => {
+    if (s.t === 0) {
+      return `<div class="age-box"><div class="pct" style="color:#ccc;">—</div><div class="cat">${cat}</div></div>`;
+    }
+    const r = Math.round(s.w / s.t * 100);
+    return `<div class="age-box"><div class="pct ${ratePctClass(r)}">${r}%</div><div class="cat">${cat}・${s.t}試合</div></div>`;
+  }).join('');
+
+  // 傾向・強み・課題（勝ち/負け試合の頻出タグ。2回以上、勝敗どちらで多いかで振り分け）
+  const winTags = {}, loseTags = {};
+  matches.forEach(m => (m.tags || []).forEach(t => {
+    const bucket = m.win ? winTags : loseTags;
+    bucket[t] = (bucket[t] || 0) + 1;
+  }));
+  const strengths = Object.entries(winTags)
+    .filter(([t, c]) => c >= 2 && c > (loseTags[t] || 0))
+    .sort((a, b) => b[1] - a[1]).slice(0, 2);
+  const weaknesses = Object.entries(loseTags)
+    .filter(([t, c]) => c >= 2 && c >= (winTags[t] || 0))
+    .sort((a, b) => b[1] - a[1]).slice(0, 2);
+  const insights = [
+    ...strengths.map(([t, c]) => ({ tag: t, count: c, isStrength: true })),
+    ...weaknesses.map(([t, c]) => ({ tag: t, count: c, isStrength: false })),
+  ];
+  const tagBox = document.getElementById('tag-insights');
+  if (insights.length === 0) {
+    tagBox.innerHTML = '<div style="font-size:13px; color:#aaa; text-align:center; padding:8px;">タグを付けて記録すると強み・課題が見えてきます</div>';
+  } else {
+    tagBox.innerHTML = insights.map(i => `
+      <div class="insight-row">
+        <span style="width:10px; height:10px; border-radius:50%; background:${i.isStrength ? '#4CAF50' : '#F44336'}; flex-shrink:0;"></span>
+        <div class="insight-text">
+          <strong>${i.tag}</strong>
+          <span>${i.isStrength ? '勝ち試合' : '負け試合'}で${i.count}回選択</span>
+        </div>
+        <span class="insight-badge ${i.isStrength ? 'badge-strength' : 'badge-weak'}">${i.isStrength ? '強み' : '課題'}</span>
+      </div>`).join('');
+  }
 }
 
 function showDetail(m) {
