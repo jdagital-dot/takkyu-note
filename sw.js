@@ -1,7 +1,7 @@
 const CACHE = 'pingpong-v27';
 const ASSETS = [
   '/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png',
-  '/privacy.html', '/terms.html',
+  '/privacy', '/terms',
   '/js/main.js', '/js/supabase-client.js', '/js/auth.js', '/js/auth-ui.js',
   '/js/account.js', '/js/players.js', '/js/player-state.js', '/js/player-ui.js',
   '/js/player-edit.js', '/js/onboarding.js', '/js/matches.js', '/js/matches-cache.js',
