@@ -3,6 +3,8 @@ import * as auth from './auth.js';
 let mode = 'login';
 
 export function showAuthScreen() {
+  const splash = document.getElementById('splash');
+  if (splash) splash.style.display = 'none';
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const authScreen = document.getElementById('screen-auth');
   authScreen.style.display = 'flex';

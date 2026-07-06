@@ -40,7 +40,13 @@ async function performLogout() {
 
 window.performLogout = performLogout;
 
+function hideSplash() {
+  const el = document.getElementById('splash');
+  if (el) el.style.display = 'none';
+}
+
 function showHomeWithCachedData() {
+  hideSplash();
   authUI.hideAuthScreen();
   if (typeof window.renderMatches === 'function') window.renderMatches();
   if (typeof window.showScreen === 'function') window.showScreen('home');

@@ -2,6 +2,8 @@ import * as players from './players.js';
 import * as playerState from './player-state.js';
 
 export function showOnboardingScreen() {
+  const splash = document.getElementById('splash');
+  if (splash) splash.style.display = 'none';
   document.querySelectorAll('.screen').forEach(s => {
     s.classList.remove('active');
     if (s.id !== 'screen-onboarding') s.style.display = 'none';

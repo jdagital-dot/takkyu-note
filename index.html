@@ -706,6 +706,13 @@
 </head>
 <body>
 <div class="phone">
+  <!-- 起動スプラッシュ（main.js が表示画面を決めるまでの間だけ表示） -->
+  <div id="splash" style="position:absolute; inset:0; background:#fff; z-index:300; display:flex; align-items:center; justify-content:center;">
+    <div style="width:72px; height:72px; background:#1a1a2e; border-radius:18px; display:flex; align-items:center; justify-content:center;">
+      <div style="width:44px; height:44px; background:#e53935; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:22px; font-weight:800;">卓</div>
+    </div>
+  </div>
+
   <!-- 認証画面（未ログイン時のみ表示） -->
   <div class="screen" id="screen-auth" style="display:none; flex-direction:column; padding:24px; justify-content:center; flex:1;">
     <div style="text-align:center; margin-bottom:20px;">
@@ -764,7 +771,7 @@
   </div>
 
   <!-- ホーム画面 -->
-  <div class="screen active" id="screen-home">
+  <div class="screen" id="screen-home">
     <div class="header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; position:relative;">
       <div style="flex:1; min-width:0;">
         <h1>試合日記</h1>
@@ -982,7 +989,7 @@
   </div>
 
   <!-- FABボタン -->
-  <div class="fab" id="fab" onclick="showScreen('record')">＋</div>
+  <div class="fab" id="fab" onclick="showScreen('record')" style="display:none;">＋</div>
 
   <!-- 詳細モーダル -->
   <div class="modal-overlay" id="modal">
@@ -1013,7 +1020,7 @@
   <div class="toast" id="toast">✓ 試合を記録しました</div>
 
   <!-- ボトムナビ -->
-  <div class="bottom-nav">
+  <div class="bottom-nav" style="display:none;">
     <div class="nav-item active" id="nav-home" onclick="showScreen('home')">
       <span class="nav-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
