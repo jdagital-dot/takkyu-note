@@ -30,7 +30,7 @@ function renderAuthForm() {
     container.innerHTML = `
       <div style="text-align:center; padding:24px; background:#f9f9f9; border-radius:14px;">
         <div style="font-size:18px; font-weight:700; color:#1a1a2e; margin-bottom:8px;">確認メールを送りました</div>
-        <div style="font-size:13px; color:#888; line-height:1.6;">メールアプリを開いて、リンクをクリックしてください。</div>
+        <div style="font-size:13px; color:#888; line-height:1.6;">メールアプリを開いて、リンクをクリックしてください。<br><br>届かない場合は<strong style="color:#e53935;">迷惑メールフォルダ</strong>をご確認ください。</div>
         <button onclick="authUI.setMode('login')" style="margin-top:16px; background:none; border:none; color:#e53935; font-weight:700; cursor:pointer;">ログイン画面に戻る</button>
       </div>
     `;
