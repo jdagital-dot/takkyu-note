@@ -844,7 +844,7 @@
         </div>
         <div class="form-row">
           <label for="team-name">対戦チーム名</label>
-          <input type="text" id="team-name" placeholder="例：新潟市立○○中学校">
+          <input type="text" id="team-name" placeholder="例：○○市立△△中学校">
         </div>
         <div class="form-row" style="flex-direction: row; gap: 12px;">
           <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
@@ -1175,23 +1175,9 @@ function renderPickerRow(p, i) {
 }
 
 let pickerQuery = '';
-let pickerRegion = '';
+let pickerPref = '';
 let pickerGrade = '';
 let pickerTeam = '';
-
-const REGION_MAP = {
-  '上越': ['上越','妙高','糸魚川'],
-  '中越': ['長岡','柏崎','小千谷','魚沼','南魚沼','十日町','見附','三条','燕'],
-  '下越': ['新潟','新発田','村上','阿賀野','五泉','聖籠'],
-};
-
-function getRegion(pref, team) {
-  if (pref !== '新潟') return 'その他';
-  for (const [region, cities] of Object.entries(REGION_MAP)) {
-    if (cities.some(c => team && team.includes(c))) return region;
-  }
-  return 'その他';
-}
 
 const GRADES = [
   { label: '小学生以下', val: 'u10' },
@@ -1226,7 +1212,7 @@ function gradeLabel(age) {
 
 function openPicker() {
   pickerQuery = '';
-  pickerRegion = '';
+  pickerPref = '';
   pickerGrade = '';
   pickerTeam = '';
   renderPicker();
@@ -1242,23 +1228,26 @@ function renderPicker() {
     ...recent.filter(p => !abNames.has(p.name))
   ];
 
-  // チーム名の選択肢
-  const teams = [...new Set(allCandidates.map(p => p.team).filter(Boolean))].sort();
-
   // 絞り込み
   const q = pickerQuery.trim();
   const filtered = allCandidates.filter(p => {
     const matchQ = !q || p.name.includes(q) || (p.team && p.team.includes(q));
-    const matchRegion = !pickerRegion || getRegion(p.pref, p.team) === pickerRegion;
+    const matchPref = !pickerPref || p.pref === pickerPref;
     const matchGrade = !pickerGrade || gradeVal(p.age) === pickerGrade;
     const matchTeam = !pickerTeam || p.team === pickerTeam;
-    return matchQ && matchRegion && matchGrade && matchTeam;
+    return matchQ && matchPref && matchGrade && matchTeam;
   });
 
-  // 地域が選ばれていればその地域のチームだけ、なければ全チーム
-  const teamsInRegion = [...new Set(
+  // 登録データに存在する県だけをフィルター候補に出す
+  const prefsAvailable = [...new Set(allCandidates.map(p => p.pref).filter(Boolean))].sort();
+  const prefOptions = [`<option value="">すべての県</option>`,
+    ...prefsAvailable.map(pf => `<option value="${esc(pf)}"${pickerPref===pf?' selected':''}>${esc(pf)}</option>`)
+  ].join('');
+
+  // 県が選ばれていればその県のチームだけ、なければ全チーム
+  const teamsInPref = [...new Set(
     allCandidates
-      .filter(p => !pickerRegion || getRegion(p.pref, p.team) === pickerRegion)
+      .filter(p => !pickerPref || p.pref === pickerPref)
       .map(p => p.team).filter(Boolean)
   )].sort();
 
@@ -1267,10 +1256,10 @@ function renderPicker() {
   ).join('');
 
   // チームタグエリアは固定高さ（2行分）で中身だけ変わる
-  _pickerTeams = teamsInRegion;
-  const teamTagsHtml = teamsInRegion.length === 0
-    ? `<span style="font-size:12px; color:#ccc;">${pickerRegion ? 'チームなし' : '地域を選ぶとチームが出ます'}</span>`
-    : teamsInRegion.map((t, i) => `
+  _pickerTeams = teamsInPref;
+  const teamTagsHtml = teamsInPref.length === 0
+    ? `<span style="font-size:12px; color:#ccc;">チームなし</span>`
+    : teamsInPref.map((t, i) => `
         <button onclick="togglePickerTeam(${i})"
           style="border:1.5px solid ${pickerTeam===t?'#e53935':'#e0e0e0'}; background:${pickerTeam===t?'#fff5f5':'#fff'}; color:${pickerTeam===t?'#e53935':'#666'}; border-radius:20px; padding:4px 10px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap;">
           ${esc(t)}
@@ -1294,25 +1283,22 @@ function renderPicker() {
         oninput="pickerQuery=this.value; renderPicker();"
         style="width:100%; border:1.5px solid #e8e8e8; border-radius:10px; padding:10px 14px; font-size:16px; font-family:inherit; outline:none; margin-bottom:10px;">
 
-      <!-- 地域タグ（常に1行固定） -->
+      <!-- 県・学年フィルター（1行2カラム） -->
       <div style="display:flex; gap:6px; margin-bottom:8px;">
-        ${['上越','中越','下越','その他'].map(r => `
-          <button onclick="pickerRegion=pickerRegion==='${r}'?'':'${r}'; pickerTeam=''; renderPicker();"
-            style="flex:1; border:1.5px solid ${pickerRegion===r?'#e53935':'#e0e0e0'}; background:${pickerRegion===r?'#fff5f5':'#fafafa'}; color:${pickerRegion===r?'#e53935':'#888'}; border-radius:20px; padding:6px 0; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; text-align:center;">
-            ${r}
-          </button>`).join('')}
+        <select onchange="pickerPref=this.value; pickerTeam=''; renderPicker();" aria-label="県で絞り込み"
+          style="flex:1; border:1.5px solid ${pickerPref?'#e53935':'#e8e8e8'}; border-radius:10px; padding:8px 12px; font-size:13px; font-family:inherit; outline:none; background:${pickerPref?'#fff5f5':'#fafafa'}; color:${pickerPref?'#e53935':'#555'};">
+          ${prefOptions}
+        </select>
+        <select onchange="pickerGrade=this.value; renderPicker();" aria-label="学年で絞り込み"
+          style="flex:1; border:1.5px solid ${pickerGrade?'#e53935':'#e8e8e8'}; border-radius:10px; padding:8px 12px; font-size:13px; font-family:inherit; outline:none; background:${pickerGrade?'#fff5f5':'#fafafa'}; color:${pickerGrade?'#e53935':'#555'};">
+          ${gradeOptions}
+        </select>
       </div>
 
       <!-- チームタグ（固定高さ・内部スクロール） -->
       <div style="height:52px; overflow-x:auto; overflow-y:hidden; display:flex; align-items:center; gap:6px; padding:4px 2px; margin-bottom:8px; scrollbar-width:none;">
         ${teamTagsHtml}
       </div>
-
-      <!-- 学年ドロップダウン -->
-      <select onchange="pickerGrade=this.value; renderPicker();"
-        style="width:100%; border:1.5px solid ${pickerGrade?'#e53935':'#e8e8e8'}; border-radius:10px; padding:8px 12px; font-size:13px; font-family:inherit; outline:none; background:${pickerGrade?'#fff5f5':'#fafafa'}; color:${pickerGrade?'#e53935':'#555'}; margin-bottom:8px;">
-        ${gradeOptions}
-      </select>
 
       <div style="font-size:12px; color:#aaa; margin-bottom:4px;">${filtered.length}件</div>
     </div>
@@ -1374,7 +1360,7 @@ function renderAddressBook() {
       </div>
       <div class="form-row">
         <label for="ab-team">チーム名</label>
-        <input id="ab-team" type="text" placeholder="例：新潟市立○○中学校">
+        <input id="ab-team" type="text" placeholder="例：○○市立△△中学校">
       </div>
       <div style="display:flex; gap:12px; margin-bottom:14px;">
         <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
