@@ -49,8 +49,8 @@ function renderAuthForm() {
         または
         <div style="flex:1; height:1px; background:#eee;"></div>
       </div>
-      <input id="auth-email" type="email" autocomplete="email" placeholder="メールアドレス" style="padding:12px 14px; border:1.5px solid #e0e0e0; border-radius:10px; font-size:16px; outline:none; font-family:inherit;">
-      <input id="auth-password" type="password" autocomplete="${isLogin ? 'current-password' : 'new-password'}" placeholder="パスワード（6文字以上）" style="padding:12px 14px; border:1.5px solid #e0e0e0; border-radius:10px; font-size:16px; outline:none; font-family:inherit;">
+      <input id="auth-email" type="email" name="email" autocomplete="email" spellcheck="false" autocapitalize="off" placeholder="メールアドレス" style="padding:12px 14px; border:1.5px solid #e0e0e0; border-radius:10px; font-size:16px; outline:none; font-family:inherit;">
+      <input id="auth-password" type="password" name="password" autocomplete="${isLogin ? 'current-password' : 'new-password'}" placeholder="パスワード（6文字以上）" style="padding:12px 14px; border:1.5px solid #e0e0e0; border-radius:10px; font-size:16px; outline:none; font-family:inherit;">
       <button onclick="authUI.${isLogin ? 'handleLogin' : 'handleSignup'}()" style="padding:14px; background:linear-gradient(135deg,#e53935,#c62828); color:#fff; border:none; border-radius:12px; font-weight:700; font-size:15px; cursor:pointer; font-family:inherit;">
         ${isLogin ? 'ログイン' : '新規登録'}
       </button>

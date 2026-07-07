@@ -122,7 +122,11 @@
     align-items: flex-start;
     margin-bottom: 8px;
   }
-  .opponent-name { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+  .opponent-name {
+    font-size: 16px; font-weight: 700; color: #1a1a2e;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    min-width: 0; flex: 1; margin-right: 8px;
+  }
   .win-badge {
     font-size: 12px;
     font-weight: 700;
@@ -512,12 +516,16 @@
     width: 32px;
     height: 32px;
     background: #f0f0f0;
+    border: none;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     font-size: 18px;
+    font-family: inherit;
+    color: #333;
+    padding: 0;
     transition: background 0.15s;
     user-select: none;
     flex-shrink: 0;
@@ -702,14 +710,29 @@
     white-space: nowrap;
   }
   .toast.show { opacity: 1; }
+
+  /* 数値の桁揃え（スコア・統計） */
+  .score-text, .stat-box .val, .big-num, .type-pct, .stepper-val, .score-input { font-variant-numeric: tabular-nums; }
+
+  /* 視覚過敏ユーザー向け: アニメーションを最小化 */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 </style>
 </head>
 <body>
 <div class="phone">
   <!-- 起動スプラッシュ（main.js が表示画面を決めるまでの間だけ表示） -->
-  <div id="splash" style="position:absolute; inset:0; background:#fff; z-index:300; display:flex; align-items:center; justify-content:center;">
+  <div id="splash" style="position:absolute; inset:0; background:#fff; z-index:300; display:flex; flex-direction:column; gap:20px; align-items:center; justify-content:center;">
     <div style="width:72px; height:72px; background:#1a1a2e; border-radius:18px; display:flex; align-items:center; justify-content:center;">
       <div style="width:44px; height:44px; background:#e53935; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:22px; font-weight:800;">卓</div>
+    </div>
+    <div id="splash-error" style="display:none; text-align:center; font-size:13px; color:#888; line-height:1.7; padding:0 32px;">
+      読み込みに時間がかかっています。<br>通信環境をご確認のうえ、再読み込みしてください。
     </div>
   </div>
 
@@ -751,11 +774,11 @@
     </div>
     <div style="display:flex; flex-direction:column; gap:14px;">
       <div class="form-row">
-        <label>名前</label>
+        <label for="onboarding-name">名前</label>
         <input id="onboarding-name" type="text" placeholder="例：中田 太郎" required>
       </div>
       <div class="form-row">
-        <label>学年</label>
+        <label for="onboarding-grade">学年</label>
         <select id="onboarding-grade" required>
           <option value="">選択...</option>
           <option value="u10">小学生以下</option>
@@ -813,19 +836,19 @@
           <button onclick="openAddressBook()" style="border:none; background:none; font-size:12px; color:#e53935; font-weight:700; cursor:pointer; font-family:inherit;">📋 アドレス帳</button>
         </div>
         <div class="form-row">
-          <label>相手の名前</label>
+          <label for="opponent-name">相手の名前</label>
           <div class="opponent-field">
             <input type="text" id="opponent-name" placeholder="例：田中 太郎">
-            <button class="pick-btn" onclick="openPicker()" title="履歴から選ぶ">🔍</button>
+            <button class="pick-btn" onclick="openPicker()" title="履歴から選ぶ" aria-label="アドレス帳・履歴から選ぶ">🔍</button>
           </div>
         </div>
         <div class="form-row">
-          <label>対戦チーム名</label>
+          <label for="team-name">対戦チーム名</label>
           <input type="text" id="team-name" placeholder="例：新潟市立○○中学校">
         </div>
         <div class="form-row" style="flex-direction: row; gap: 12px;">
           <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
-            <label>相手の学年</label>
+            <label for="opponent-grade">相手の学年</label>
             <select id="opponent-grade">
               <option value="">選択...</option>
               <option value="u10">小学生以下</option>
@@ -842,7 +865,7 @@
             </select>
           </div>
           <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
-            <label>相手の県</label>
+            <label for="opponent-pref">相手の県</label>
             <select id="opponent-pref">
               <option value="">選択...</option>
               <option>北海道</option><option>青森</option><option>岩手</option>
@@ -865,7 +888,7 @@
           </div>
         </div>
         <div class="form-row">
-          <label>試合種別</label>
+          <label for="match-type">試合種別</label>
           <select id="match-type">
             <option>公式戦（個人）</option>
             <option>公式戦（団体）</option>
@@ -989,7 +1012,7 @@
   </div>
 
   <!-- FABボタン -->
-  <div class="fab" id="fab" onclick="showScreen('record')" style="display:none;">＋</div>
+  <div class="fab" id="fab" onclick="showScreen('record')" style="display:none;" role="button" aria-label="試合を記録">＋</div>
 
   <!-- 詳細モーダル -->
   <div class="modal-overlay" id="modal">
@@ -1017,11 +1040,11 @@
   </div>
 
   <!-- トースト -->
-  <div class="toast" id="toast">✓ 試合を記録しました</div>
+  <div class="toast" id="toast" aria-live="polite">✓ 試合を記録しました</div>
 
   <!-- ボトムナビ -->
   <div class="bottom-nav" style="display:none;">
-    <div class="nav-item active" id="nav-home" onclick="showScreen('home')">
+    <div class="nav-item active" id="nav-home" onclick="showScreen('home')" role="button" aria-label="日記">
       <span class="nav-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M2 9.5L12 3l10 6.5V21a1 1 0 01-1 1H3a1 1 0 01-1-1V9.5z"/><path d="M9 22V12h6v10"/>
@@ -1029,7 +1052,7 @@
       </span>
       <span class="nav-label">日記</span>
     </div>
-    <div class="nav-item" id="nav-record" onclick="showScreen('record')">
+    <div class="nav-item" id="nav-record" onclick="showScreen('record')" role="button" aria-label="記録">
       <span class="nav-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
@@ -1037,7 +1060,7 @@
       </span>
       <span class="nav-label">記録</span>
     </div>
-    <div class="nav-item" id="nav-analysis" onclick="showScreen('analysis')">
+    <div class="nav-item" id="nav-analysis" onclick="showScreen('analysis')" role="button" aria-label="分析">
       <span class="nav-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
@@ -1055,6 +1078,22 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(e => console.log('SW registration failed', e));
   });
+}
+
+// スプラッシュのフォールバック: 12秒経っても画面が切り替わらない場合に案内を表示
+setTimeout(() => {
+  const splash = document.getElementById('splash');
+  if (splash && splash.style.display !== 'none') {
+    const err = document.getElementById('splash-error');
+    if (err) err.style.display = 'block';
+  }
+}, 12000);
+
+// HTMLエスケープ（innerHTML にユーザー入力を埋め込む前に必ず通す）
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
 }
 
 // サンプルデータ
@@ -1112,16 +1151,25 @@ function fillOpponent(p) {
   closeAbModal();
 }
 
-function renderPickerRow(p, showStar) {
+let _pickerItems = [];
+let _pickerTeams = [];
+
+function togglePickerTeam(i) {
+  const t = _pickerTeams[i];
+  pickerTeam = pickerTeam === t ? '' : t;
+  renderPicker();
+}
+
+function renderPickerRow(p, i) {
   const initial = p.name ? p.name[0] : '?';
   return `
-    <div class="picker-row" onclick='fillOpponent(${JSON.stringify(p)})'>
-      <div class="picker-avatar">${initial}</div>
+    <div class="picker-row" onclick="fillOpponent(_pickerItems[${i}])">
+      <div class="picker-avatar">${esc(initial)}</div>
       <div class="picker-info">
-        <div class="picker-name">${p.name || p.team}</div>
-        <div class="picker-sub">${p.team} ・ ${p.pref} ・ ${gradeLabel(p.age)}</div>
+        <div class="picker-name">${esc(p.name || p.team)}</div>
+        <div class="picker-sub">${esc(p.team)} ・ ${esc(p.pref)} ・ ${gradeLabel(p.age)}</div>
       </div>
-      <span class="picker-type-tag">${p.type}</span>
+      <span class="picker-type-tag">${esc(p.type)}</span>
     </div>
   `;
 }
@@ -1219,30 +1267,32 @@ function renderPicker() {
   ).join('');
 
   // チームタグエリアは固定高さ（2行分）で中身だけ変わる
+  _pickerTeams = teamsInRegion;
   const teamTagsHtml = teamsInRegion.length === 0
     ? `<span style="font-size:12px; color:#ccc;">${pickerRegion ? 'チームなし' : '地域を選ぶとチームが出ます'}</span>`
-    : teamsInRegion.map(t => `
-        <button onclick="pickerTeam=pickerTeam==='${t}'?'':'${t}'; renderPicker();"
+    : teamsInRegion.map((t, i) => `
+        <button onclick="togglePickerTeam(${i})"
           style="border:1.5px solid ${pickerTeam===t?'#e53935':'#e0e0e0'}; background:${pickerTeam===t?'#fff5f5':'#fff'}; color:${pickerTeam===t?'#e53935':'#666'}; border-radius:20px; padding:4px 10px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap;">
-          ${t}
+          ${esc(t)}
         </button>`).join('');
 
+  _pickerItems = filtered;
   const listHtml = filtered.length === 0
     ? `<div class="picker-empty">該当する選手が見つかりません</div>`
-    : filtered.map(p => renderPickerRow(p)).join('');
+    : filtered.map((p, i) => renderPickerRow(p, i)).join('');
 
   const html = `
     <!-- 固定ヘッダー部分 -->
     <div style="flex-shrink:0;">
       <div class="modal-header" style="margin-bottom:8px;">
         <div class="modal-title">対戦相手を選ぶ</div>
-        <div class="modal-close" onclick="closePicker()">×</div>
+        <button class="modal-close" onclick="closePicker()" aria-label="閉じる">×</button>
       </div>
 
-      <input id="picker-search" type="text" placeholder="名前で検索..."
-        value="${pickerQuery}"
+      <input id="picker-search" type="text" placeholder="名前で検索..." autocomplete="off"
+        value="${esc(pickerQuery)}"
         oninput="pickerQuery=this.value; renderPicker();"
-        style="width:100%; border:1.5px solid #e8e8e8; border-radius:10px; padding:10px 14px; font-size:14px; font-family:inherit; outline:none; margin-bottom:10px;">
+        style="width:100%; border:1.5px solid #e8e8e8; border-radius:10px; padding:10px 14px; font-size:16px; font-family:inherit; outline:none; margin-bottom:10px;">
 
       <!-- 地域タグ（常に1行固定） -->
       <div style="display:flex; gap:6px; margin-bottom:8px;">
@@ -1294,7 +1344,7 @@ function renderAddressBook() {
   let html = `
     <div class="modal-header" style="margin-bottom:4px;">
       <div class="modal-title">アドレス帳</div>
-      <div class="modal-close" onclick="closeAbModal()">×</div>
+      <button class="modal-close" onclick="closeAbModal()" aria-label="閉じる">×</button>
     </div>
   `;
   if (addressBook.length === 0) {
@@ -1303,13 +1353,13 @@ function renderAddressBook() {
     addressBook.forEach((p, i) => {
       const initial = p.name ? p.name[0] : '?';
       html += `
-        <div onclick='fillOpponent(${JSON.stringify(p)})' class="picker-row" style="background:#fafafa; margin-bottom:8px; border-radius:12px;">
-          <div class="picker-avatar">${initial}</div>
+        <div onclick="fillOpponent(addressBook[${i}])" class="picker-row" style="background:#fafafa; margin-bottom:8px; border-radius:12px;">
+          <div class="picker-avatar">${esc(initial)}</div>
           <div class="picker-info">
-            <div class="picker-name">${p.name}</div>
-            <div class="picker-sub">${p.team} ・ ${p.pref} ・ ${gradeLabel(p.age)} ・ ${p.hand ? p.hand + ' / ' : ''}${p.type}</div>
+            <div class="picker-name">${esc(p.name)}</div>
+            <div class="picker-sub">${esc(p.team)} ・ ${esc(p.pref)} ・ ${gradeLabel(p.age)} ・ ${p.hand ? esc(p.hand) + ' / ' : ''}${esc(p.type)}</div>
           </div>
-          <button onclick="event.stopPropagation(); deleteFromAB(${i})" style="border:none; background:#f5f5f5; color:#aaa; border-radius:8px; padding:6px 10px; font-size:12px; cursor:pointer; font-family:inherit; flex-shrink:0;">削除</button>
+          <button onclick="event.stopPropagation(); deleteFromAB(${i})" aria-label="${esc(p.name)}を削除" style="border:none; background:#f5f5f5; color:#aaa; border-radius:8px; padding:6px 10px; font-size:12px; cursor:pointer; font-family:inherit; flex-shrink:0;">削除</button>
         </div>
       `;
     });
@@ -1319,11 +1369,11 @@ function renderAddressBook() {
       <div style="font-size:13px; font-weight:700; color:#555; margin-bottom:12px;">新規登録</div>
 
       <div class="form-row">
-        <label>選手名</label>
+        <label for="ab-name">選手名</label>
         <input id="ab-name" type="text" placeholder="例：田中 太郎">
       </div>
       <div class="form-row">
-        <label>チーム名</label>
+        <label for="ab-team">チーム名</label>
         <input id="ab-team" type="text" placeholder="例：新潟市立○○中学校">
       </div>
       <div style="display:flex; gap:12px; margin-bottom:14px;">
@@ -1504,6 +1554,15 @@ function renderMatches() {
   // 分析画面も更新
   renderAnalysis();
 
+  if (matches.length === 0) {
+    list.innerHTML = `
+      <div style="text-align:center; padding:48px 24px; color:#aaa;">
+        <div style="font-size:15px; font-weight:600; color:#888; margin-bottom:8px;">まだ試合の記録がありません</div>
+        <div style="font-size:13px; line-height:1.7; margin-bottom:20px;">右下の「＋」から<br>最初の試合を記録してみましょう。</div>
+      </div>
+    `;
+  }
+
   matches.forEach(m => {
     const card = document.createElement('div');
     card.className = 'match-card';
@@ -1511,18 +1570,18 @@ function renderMatches() {
       <div class="card-stripe ${m.win ? 'stripe-win' : 'stripe-lose'}"></div>
       <div class="card-body">
         <div class="card-top">
-          <div class="opponent-name">${m.opponent || m.team}</div>
+          <div class="opponent-name">${esc(m.opponent || m.team)}</div>
           <span class="win-badge ${m.win ? 'badge-win' : 'badge-lose'}">${m.win ? '勝ち' : '負け'}</span>
         </div>
         <div class="card-meta">
-          ${m.hand ? `<span class="meta-tag">${m.hand}</span>` : ''}
-          <span class="meta-tag">${m.type}</span>
-          <span class="meta-tag">${m.pref}</span>
-          <span class="meta-tag">${m.matchType}</span>
+          ${m.hand ? `<span class="meta-tag">${esc(m.hand)}</span>` : ''}
+          <span class="meta-tag">${esc(m.type)}</span>
+          <span class="meta-tag">${esc(m.pref)}</span>
+          <span class="meta-tag">${esc(m.matchType)}</span>
         </div>
         <div class="card-bottom">
-          <span class="score-text">${m.score}</span>
-          <span class="date-text">${m.date}</span>
+          <span class="score-text">${esc(m.score)}</span>
+          <span class="date-text">${esc(m.date)}</span>
         </div>
       </div>
     `;
@@ -1585,7 +1644,7 @@ function renderAnalysis() {
       const r = Math.round(s.wins / s.total * 100);
       return `
       <div class="type-row">
-        <span class="type-label">${TYPE_SHORT_NAMES[type] || type}</span>
+        <span class="type-label">${esc(TYPE_SHORT_NAMES[type] || type)}</span>
         <div class="type-bar-wrap">
           <div class="type-bar"><div class="type-bar-fill ${rateBarClass(r)}" style="width:${r}%"></div></div>
         </div>
@@ -1633,7 +1692,7 @@ function renderAnalysis() {
       <div class="insight-row">
         <span style="width:10px; height:10px; border-radius:50%; background:${i.isStrength ? '#4CAF50' : '#F44336'}; flex-shrink:0;"></span>
         <div class="insight-text">
-          <strong>${i.tag}</strong>
+          <strong>${esc(i.tag)}</strong>
           <span>${i.isStrength ? '勝ち試合' : '負け試合'}で${i.count}回選択</span>
         </div>
         <span class="insight-badge ${i.isStrength ? 'badge-strength' : 'badge-weak'}">${i.isStrength ? '強み' : '課題'}</span>
@@ -1646,23 +1705,23 @@ function showDetail(m) {
   document.getElementById('modal-content').innerHTML = `
     <div class="modal-header">
       <div>
-        <div class="modal-title">${m.opponent || m.team}</div>
-        <div class="modal-subtitle">${m.date} ・ ${m.matchType}</div>
+        <div class="modal-title">${esc(m.opponent || m.team)}</div>
+        <div class="modal-subtitle">${esc(m.date)} ・ ${esc(m.matchType)}</div>
       </div>
-      <div class="modal-close" onclick="closeModal()">×</div>
+      <button class="modal-close" onclick="closeModal()" aria-label="閉じる">×</button>
     </div>
     <span class="win-badge ${m.win ? 'badge-win' : 'badge-lose'}" style="font-size:16px; padding:6px 16px;">${m.win ? '✓ 勝ち' : '✗ 負け'}</span>
     <div style="margin-top: 16px;">
-      <div class="detail-row"><span class="detail-label">チーム</span><span class="detail-value">${m.team}</span></div>
-      <div class="detail-row"><span class="detail-label">相手</span><span class="detail-value">${m.opponent || '—'}</span></div>
-      <div class="detail-row"><span class="detail-label">年齢</span><span class="detail-value">${m.age}歳（${ageLabel}）</span></div>
-      <div class="detail-row"><span class="detail-label">県</span><span class="detail-value">${m.pref}</span></div>
-      ${m.hand ? `<div class="detail-row"><span class="detail-label">利き手</span><span class="detail-value">${m.hand}</span></div>` : ''}
-      <div class="detail-row"><span class="detail-label">戦型</span><span class="detail-value">${m.type}</span></div>
-      <div class="detail-row"><span class="detail-label">スコア</span><span class="detail-value">${m.score}</span></div>
+      <div class="detail-row"><span class="detail-label">チーム</span><span class="detail-value">${esc(m.team)}</span></div>
+      <div class="detail-row"><span class="detail-label">相手</span><span class="detail-value">${esc(m.opponent) || '—'}</span></div>
+      <div class="detail-row"><span class="detail-label">年齢</span><span class="detail-value">${esc(m.age)}歳（${ageLabel}）</span></div>
+      <div class="detail-row"><span class="detail-label">県</span><span class="detail-value">${esc(m.pref)}</span></div>
+      ${m.hand ? `<div class="detail-row"><span class="detail-label">利き手</span><span class="detail-value">${esc(m.hand)}</span></div>` : ''}
+      <div class="detail-row"><span class="detail-label">戦型</span><span class="detail-value">${esc(m.type)}</span></div>
+      <div class="detail-row"><span class="detail-label">スコア</span><span class="detail-value">${esc(m.score)}</span></div>
     </div>
-    <div class="detail-tags">${m.tags.map(t => `<span class="detail-tag">${t}</span>`).join('')}</div>
-    ${m.memo ? `<div class="detail-memo">${m.memo}</div>` : ''}
+    <div class="detail-tags">${m.tags.map(t => `<span class="detail-tag">${esc(t)}</span>`).join('')}</div>
+    ${m.memo ? `<div class="detail-memo">${esc(m.memo)}</div>` : ''}
     <div style="display:flex; gap:10px; margin-top:20px; border-top:1px solid #f0f0f0; padding-top:16px;">
       <button onclick="confirmDeleteMatch('${m.id}')" style="flex:1; border:1.5px solid #ffcdd2; background:#fff5f5; color:#e53935; border-radius:12px; padding:12px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">削除</button>
       <button onclick="startEditMatch('${m.id}')" style="flex:2; background:linear-gradient(135deg,#1a1a2e,#16213e); color:#fff; border:none; border-radius:12px; padding:12px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">編集する</button>
@@ -1696,10 +1755,10 @@ function confirmDeleteMatch(id) {
   document.getElementById('confirm-content').innerHTML = `
     <div class="modal-header" style="margin-bottom:12px;">
       <div class="modal-title">試合を削除しますか？</div>
-      <div class="modal-close" onclick="closeConfirm()">×</div>
+      <button class="modal-close" onclick="closeConfirm()" aria-label="閉じる">×</button>
     </div>
     <div style="font-size:13px; color:#888; line-height:1.6;">
-      <strong style="color:#1a1a2e;">${m.opponent || m.team}</strong> との試合記録を削除します。この操作は取り消せません。
+      <strong style="color:#1a1a2e;">${esc(m.opponent || m.team)}</strong> との試合記録を削除します。この操作は取り消せません。
     </div>
     <div style="display:flex; gap:10px; margin-top:20px;">
       <button onclick="closeConfirm()" style="flex:1; border:1.5px solid #e0e0e0; background:#fff; border-radius:12px; padding:14px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; color:#666;">キャンセル</button>
@@ -1935,10 +1994,10 @@ function showAddConfirm(match) {
   document.getElementById('confirm-content').innerHTML = `
     <div class="modal-header" style="margin-bottom:12px;">
       <div class="modal-title">アドレス帳に追加しますか？</div>
-      <div class="modal-close" onclick="closeConfirm()">×</div>
+      <button class="modal-close" onclick="closeConfirm()" aria-label="閉じる">×</button>
     </div>
     <div style="font-size:13px; color:#888; line-height:1.6;">
-      <strong style="color:#1a1a2e;">${match.opponent}</strong> さんをアドレス帳に登録すると、次回から素早く選択できます。
+      <strong style="color:#1a1a2e;">${esc(match.opponent)}</strong> さんをアドレス帳に登録すると、次回から素早く選択できます。
     </div>
     <div style="display:flex; gap:10px; margin-top:20px;">
       <button onclick="closeConfirm()" style="flex:1; border:1.5px solid #e0e0e0; background:#fff; border-radius:12px; padding:14px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; color:#666;">追加しない</button>
