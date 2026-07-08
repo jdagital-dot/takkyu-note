@@ -844,7 +844,12 @@
         </div>
         <div class="form-row">
           <label for="team-name">対戦チーム名</label>
-          <input type="text" id="team-name" placeholder="例：○○市立△△中学校">
+          <input type="text" id="team-name" placeholder="例：○○市立△△中学校" list="team-suggestions" autocomplete="off">
+          <datalist id="team-suggestions"></datalist>
+        </div>
+        <div class="form-row">
+          <label for="match-date">試合日</label>
+          <input type="date" id="match-date">
         </div>
         <div class="form-row" style="flex-direction: row; gap: 12px;">
           <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
@@ -1360,7 +1365,7 @@ function renderAddressBook() {
       </div>
       <div class="form-row">
         <label for="ab-team">チーム名</label>
-        <input id="ab-team" type="text" placeholder="例：○○市立△△中学校">
+        <input id="ab-team" type="text" placeholder="例：○○市立△△中学校" list="team-suggestions" autocomplete="off">
       </div>
       <div style="display:flex; gap:12px; margin-bottom:14px;">
         <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
@@ -1518,6 +1523,22 @@ function updateScore(idx, side, value) {
   const badge = row.querySelector('.set-result-badge');
   badge.className = 'set-result-badge ' + (done === 'win' ? 'set-result-win' : done === 'lose' ? 'set-result-lose' : 'set-result-none');
   badge.textContent = done === 'win' ? '勝ち' : done === 'lose' ? '負け' : '—';
+
+  maybeAutoAddSet();
+}
+
+// 全セットが決着していて試合が続く可能性があれば、次のセット行を自動で追加する
+// （5セットマッチ=3セット先取を想定。3セットマッチで余った空行は保存時に無視されるので無害）
+function maybeAutoAddSet() {
+  if (setScores.length >= 7) return;
+  let my = 0, opp = 0;
+  for (const s of setScores) {
+    const done = isSetDone(s.my, s.opp);
+    if (!done) return; // 入力途中のセットがあるうちは追加しない
+    if (done === 'win') my++; else opp++;
+  }
+  if (Math.max(my, opp) >= 3) return; // 3セット先取で決着済み
+  addSet();
 }
 
 function initSets() {
@@ -1537,8 +1558,9 @@ function renderMatches() {
   document.getElementById('win-count').textContent = wins;
   document.getElementById('lose-count').textContent = matches.length - wins;
 
-  // 分析画面も更新
+  // 分析画面・チーム名候補も更新
   renderAnalysis();
+  updateTeamSuggestions();
 
   if (matches.length === 0) {
     list.innerHTML = `
@@ -1788,6 +1810,7 @@ function startEditMatch(id) {
   document.getElementById('opponent-pref').value = m.pref || '';
   document.getElementById('match-type').value = m.matchType || '';
   document.getElementById('match-memo').value = m.memo || '';
+  document.getElementById('match-date').value = m._remoteRow?.date || todayStr();
 
   selectedHand = m.hand || '';
   document.querySelectorAll('.hand-btn').forEach(b => {
@@ -1876,6 +1899,38 @@ function addSet() {
 
 let _pendingMatchForAb = null;
 
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// 前回入力した県・試合種別を新規記録のデフォルトにする
+function applyLastDefaults() {
+  try {
+    const lastPref = localStorage.getItem('pingpong_last_pref');
+    if (lastPref) document.getElementById('opponent-pref').value = lastPref;
+    const lastType = localStorage.getItem('pingpong_last_match_type');
+    if (lastType) document.getElementById('match-type').value = lastType;
+  } catch {}
+}
+
+function saveLastDefaults(pref, matchType) {
+  try {
+    if (pref && pref !== '不明') localStorage.setItem('pingpong_last_pref', pref);
+    if (matchType) localStorage.setItem('pingpong_last_match_type', matchType);
+  } catch {}
+}
+
+// 過去の試合・アドレス帳からチーム名の入力候補を作る
+function updateTeamSuggestions() {
+  const dl = document.getElementById('team-suggestions');
+  if (!dl) return;
+  const teams = new Set();
+  matches.forEach(m => { if (m.team && m.team !== '未入力') teams.add(m.team); });
+  addressBook.forEach(p => { if (p.team) teams.add(p.team); });
+  dl.innerHTML = [...teams].sort().map(t => `<option value="${esc(t)}"></option>`).join('');
+}
+
 function showToast(message, isError = false) {
   const toast = document.getElementById('toast');
   toast.textContent = message;
@@ -1899,6 +1954,7 @@ async function submitRecord() {
   });
 
   const newMatch = {
+    date: document.getElementById('match-date').value || undefined,
     team: document.getElementById('team-name').value || '未入力',
     opponent: document.getElementById('opponent-name').value.trim(),
     age: gradeValToAge(document.getElementById('opponent-grade').value),
@@ -1935,6 +1991,9 @@ async function submitRecord() {
   }
   renderMatches();
 
+  // 次回のデフォルト用に県・種別を記憶
+  saveLastDefaults(newMatch.pref, newMatch.matchType);
+
   // リセット
   document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
   selectedHand = '';
@@ -1943,6 +2002,8 @@ async function submitRecord() {
   document.getElementById('opponent-name').value = '';
   document.getElementById('opponent-grade').value = '';
   document.getElementById('match-memo').value = '';
+  document.getElementById('match-date').value = todayStr();
+  applyLastDefaults();
   selectedType = '';
   selectedTags = [];
   document.querySelector('.submit-btn').textContent = '記録する';
@@ -2062,6 +2123,8 @@ window.showScreen = showScreen;
 
 loadFromStorage();
 initSets();
+document.getElementById('match-date').value = todayStr();
+applyLastDefaults();
 </script>
 </body>
 </html>
