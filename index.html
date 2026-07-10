@@ -1436,6 +1436,7 @@ async function addToAB() {
   abSelectedHand = '';
   abSelectedType = '';
   renderAddressBook();
+  updateTeamSuggestions();
 }
 
 async function deleteFromAB(idx) {
@@ -1449,6 +1450,7 @@ async function deleteFromAB(idx) {
     return;
   }
   renderAddressBook();
+  updateTeamSuggestions();
 }
 
 // 記録送信時に履歴として自動保存（addressBookに未登録なら追加しない、履歴はmatchesから取得）
@@ -2067,6 +2069,7 @@ async function addPendingToAb() {
         type: _pendingMatchForAb.type
       });
       addressBook = window.opponentsService.getAll();
+      updateTeamSuggestions();
     } catch (e) {
       console.error('Failed to add to address book:', e);
     }
