@@ -1580,10 +1580,13 @@ function renderMatches() {
       <div class="card-stripe ${m.win ? 'stripe-win' : 'stripe-lose'}"></div>
       <div class="card-body">
         <div class="card-top">
-          <div class="opponent-name">${esc(m.opponent || m.team)}</div>
+          ${m.opponent
+            ? `<div class="opponent-name">${esc(m.opponent)}</div>`
+            : `<div class="opponent-name" style="color:#bbb; font-weight:600;">相手名未入力</div>`}
           <span class="win-badge ${m.win ? 'badge-win' : 'badge-lose'}">${m.win ? '勝ち' : '負け'}</span>
         </div>
         <div class="card-meta">
+          ${m.team && m.team !== '未入力' ? `<span class="meta-tag">${esc(m.team)}</span>` : ''}
           ${m.hand ? `<span class="meta-tag">${esc(m.hand)}</span>` : ''}
           <span class="meta-tag">${esc(m.type)}</span>
           <span class="meta-tag">${esc(m.pref)}</span>
@@ -1715,7 +1718,9 @@ function showDetail(m) {
   document.getElementById('modal-content').innerHTML = `
     <div class="modal-header">
       <div>
-        <div class="modal-title">${esc(m.opponent || m.team)}</div>
+        ${m.opponent
+          ? `<div class="modal-title">${esc(m.opponent)}</div>`
+          : `<div class="modal-title" style="color:#bbb;">相手名未入力</div>`}
         <div class="modal-subtitle">${esc(m.date)} ・ ${esc(m.matchType)}</div>
       </div>
       <button class="modal-close" onclick="closeModal()" aria-label="閉じる">×</button>
