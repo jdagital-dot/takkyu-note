@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { loginWithEmail } from './helpers/login.js';
+import { setWheelScore } from './helpers/wheel.js';
 
 test('分析画面に実データが反映される', async ({ page }) => {
   await loginWithEmail(page, process.env.TEST_EMAIL, process.env.TEST_PASSWORD);
@@ -12,10 +13,9 @@ test('分析画面に実データが反映される', async ({ page }) => {
   await page.selectOption('#opponent-grade', '13');
   await page.click('.type-btn[data-type="シェークハンド裏裏"]');
   await page.click('.tag-btn:has-text("サーブ")');
-  const inputs = page.locator('input.score-input[data-side="my"]');
-  await inputs.nth(0).fill('11');
-  await inputs.nth(1).fill('11');
-  await inputs.nth(2).fill('11');
+  await setWheelScore(page, 0, 'my', 11);
+  await setWheelScore(page, 1, 'my', 11);
+  await setWheelScore(page, 2, 'my', 11);
   await page.click('button.submit-btn');
   await page.waitForSelector('#screen-home.active', { timeout: 15000 });
   await page.waitForTimeout(500);

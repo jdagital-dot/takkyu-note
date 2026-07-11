@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { loginWithEmail } from './helpers/login.js';
+import { setWheelScore } from './helpers/wheel.js';
 
 test('試合編集フロー: 更新ボタンのデバッグ', async ({ page }) => {
   const errors = [];
@@ -20,10 +21,9 @@ test('試合編集フロー: 更新ボタンのデバッグ', async ({ page }) =
   await page.waitForSelector('#screen-record.active');
   const opponentName = `編集デバッグ-${Date.now()}`;
   await page.fill('#opponent-name', opponentName);
-  const inputs = page.locator('input.score-input[data-side="my"]');
-  await inputs.nth(0).fill('11');
-  await inputs.nth(1).fill('11');
-  await inputs.nth(2).fill('11');
+  await setWheelScore(page, 0, 'my', 11);
+  await setWheelScore(page, 1, 'my', 11);
+  await setWheelScore(page, 2, 'my', 11);
   await page.click('button.submit-btn');
   await page.waitForSelector('#screen-home.active', { timeout: 15000 });
 

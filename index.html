@@ -286,27 +286,44 @@
     color: #aaa;
     font-weight: 600;
   }
-  .score-input {
-    width: 64px;
-    height: 48px;
-    text-align: center;
-    font-size: 22px;
-    font-weight: 800;
-    color: #1a1a2e;
-    background: #fff;
+  /* 縦スクロールホイール式スコア入力 */
+  .wheel-wrap {
+    position: relative;
+    width: 68px;
     border: 1.5px solid #e0e0e0;
     border-radius: 12px;
-    font-family: inherit;
-    outline: none;
-    transition: border-color 0.15s, background 0.15s;
-    -moz-appearance: textfield;
+    background: #fff;
+    overflow: hidden;
   }
-  .score-input::-webkit-outer-spin-button,
-  .score-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  .score-input:focus {
-    border-color: #e53935;
-    background: #fff5f5;
+  .wheel-highlight {
+    position: absolute; left: 3px; right: 3px; top: 40px; height: 40px;
+    background: rgba(229,57,53,0.07);
+    border: 1.5px solid #e53935;
+    border-radius: 9px;
+    pointer-events: none;
+    z-index: 2;
   }
+  .score-wheel {
+    height: 120px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-snap-type: y mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 32%, #000 68%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 32%, #000 68%, transparent 100%);
+  }
+  .score-wheel::-webkit-scrollbar { display: none; }
+  .wheel-item {
+    height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    scroll-snap-align: center;
+    font-size: 21px;
+    font-weight: 800;
+    color: #1a1a2e;
+    font-variant-numeric: tabular-nums;
+  }
+  .wheel-pad { height: 40px; }
   .score-sep { font-size: 16px; color: #ccc; font-weight: 700; padding: 0 4px; }
   .set-result-badge {
     font-size: 11px;
@@ -712,7 +729,7 @@
   .toast.show { opacity: 1; }
 
   /* 数値の桁揃え（スコア・統計） */
-  .score-text, .stat-box .val, .big-num, .type-pct, .stepper-val, .score-input { font-variant-numeric: tabular-nums; }
+  .score-text, .stat-box .val, .big-num, .type-pct { font-variant-numeric: tabular-nums; }
 
   /* 視覚過敏ユーザー向け: アニメーションを最小化 */
   @media (prefers-reduced-motion: reduce) {
@@ -1461,6 +1478,22 @@ function isSetDone(my, opp) {
   return null;
 }
 
+const WHEEL_ITEM_H = 40;
+const WHEEL_MAX = 30;
+let _wheelTimers = {};  // "idx-side" -> debounce タイマー
+let _wheelProg = {};    // "idx-side" -> プログラムスクロール中フラグ
+
+function buildWheel(idx, side) {
+  let items = '<div class="wheel-pad"></div>';
+  for (let v = 0; v <= WHEEL_MAX; v++) items += `<div class="wheel-item">${v}</div>`;
+  items += '<div class="wheel-pad"></div>';
+  return `
+    <div class="wheel-wrap">
+      <div class="wheel-highlight"></div>
+      <div class="score-wheel" data-set-idx="${idx}" data-side="${side}" onscroll="onWheelScroll(this)" aria-label="第${idx+1}セット ${side === 'my' ? '自分' : '相手'}の点数">${items}</div>
+    </div>`;
+}
+
 function renderSetRow(idx) {
   const wrap = document.getElementById('score-inputs');
   const existing = wrap.querySelector(`[data-set="${idx}"]`);
@@ -1473,14 +1506,12 @@ function renderSetRow(idx) {
       <div class="score-pair">
         <div class="score-player">
           <span class="score-player-label">自分</span>
-          <input class="score-input" type="number" inputmode="numeric" pattern="[0-9]*" min="0" max="30"
-            data-side="my" value="${s.my}" oninput="updateScore(${idx},'my',this.value)" onfocus="this.select()">
+          ${buildWheel(idx, 'my')}
         </div>
         <span class="score-sep">−</span>
         <div class="score-player">
           <span class="score-player-label">相手</span>
-          <input class="score-input" type="number" inputmode="numeric" pattern="[0-9]*" min="0" max="30"
-            data-side="opp" value="${s.opp}" oninput="updateScore(${idx},'opp',this.value)" onfocus="this.select()">
+          ${buildWheel(idx, 'opp')}
         </div>
       </div>
       <span class="set-result-badge ${done === 'win' ? 'set-result-win' : done === 'lose' ? 'set-result-lose' : 'set-result-none'}">
@@ -1494,6 +1525,8 @@ function renderSetRow(idx) {
   } else {
     wrap.insertAdjacentHTML('beforeend', html);
   }
+  setWheelPosition(idx, 'my', s.my, false);
+  setWheelPosition(idx, 'opp', s.opp, false);
 }
 
 function autoCalcOther(val) {
@@ -1503,30 +1536,65 @@ function autoCalcOther(val) {
   return val - 2;               // デュース・自分が2点差で勝ち
 }
 
-function updateScore(idx, side, value) {
-  const v = Math.max(0, Math.min(30, parseInt(value) || 0));
-  const s = setScores[idx];
-  const other = side === 'my' ? 'opp' : 'my';
-  s[side] = v;
-
-  // 値があれば相手側を自動計算
-  if (v > 0) {
-    s[other] = autoCalcOther(v);
-    const otherInput = document.querySelector(`[data-set="${idx}"] input[data-side="${other}"]`);
-    if (otherInput && document.activeElement !== otherInput) otherInput.value = s[other];
+function onWheelScroll(el) {
+  const key = el.dataset.setIdx + '-' + el.dataset.side;
+  clearTimeout(_wheelTimers[key]);
+  if (_wheelProg[key]) {
+    // プログラムによるスクロール中はコミットしない（停止後にフラグ解除）
+    _wheelTimers[key] = setTimeout(() => { _wheelProg[key] = false; }, 200);
+    return;
   }
+  _wheelTimers[key] = setTimeout(() => {
+    const val = Math.max(0, Math.min(WHEEL_MAX, Math.round(el.scrollTop / WHEEL_ITEM_H)));
+    commitWheel(parseInt(el.dataset.setIdx), el.dataset.side, val);
+  }, 170);
+}
 
-  // フォーカス保持のため行全体を再描画せず badge と枠だけ更新
+function commitWheel(idx, side, val) {
+  const s = setScores[idx];
+  if (!s) return;
+  const other = side === 'my' ? 'opp' : 'my';
+  s[side] = val;
+  // 値があれば反対側を自動計算（負けた側を合わせると勝った側に11が入る）
+  if (val > 0) {
+    s[other] = autoCalcOther(val);
+    setWheelPosition(idx, other, s[other], true);
+  }
+  updateSetStatus(idx);
+  maybeAutoAddSet();
+}
+
+function setWheelPosition(idx, side, val, smooth) {
+  const el = document.querySelector(`.score-wheel[data-set-idx="${idx}"][data-side="${side}"]`);
+  if (!el) return;
+  const key = idx + '-' + side;
+  _wheelProg[key] = true;
+  clearTimeout(_wheelTimers[key]);
+  el.scrollTo({ top: val * WHEEL_ITEM_H, behavior: smooth ? 'smooth' : 'auto' });
+  _wheelTimers[key] = setTimeout(() => { _wheelProg[key] = false; }, smooth ? 450 : 120);
+}
+
+// 記録画面を開いたときにホイール位置を setScores と同期する
+// （画面が非表示の間は scrollTop が効かないため）
+function syncAllWheels() {
+  requestAnimationFrame(() => {
+    setScores.forEach((s, idx) => {
+      setWheelPosition(idx, 'my', s.my, false);
+      setWheelPosition(idx, 'opp', s.opp, false);
+    });
+  });
+}
+
+function updateSetStatus(idx) {
   const row = document.querySelector(`[data-set="${idx}"]`);
   if (!row) return;
+  const s = setScores[idx];
   const done = isSetDone(s.my, s.opp);
   row.classList.toggle('set-done-win', done === 'win');
   row.classList.toggle('set-done-lose', done === 'lose');
   const badge = row.querySelector('.set-result-badge');
   badge.className = 'set-result-badge ' + (done === 'win' ? 'set-result-win' : done === 'lose' ? 'set-result-lose' : 'set-result-none');
   badge.textContent = done === 'win' ? '勝ち' : done === 'lose' ? '負け' : '—';
-
-  maybeAutoAddSet();
 }
 
 // 全セットが決着していて試合が続く可能性があれば、次のセット行を自動で追加する
@@ -1858,6 +1926,7 @@ function showScreen(name) {
   document.getElementById('screen-' + name).classList.add('active');
   document.getElementById('nav-' + name).classList.add('active');
   document.getElementById('fab').style.display = name === 'home' ? 'flex' : 'none';
+  if (name === 'record') syncAllWheels();
 }
 
 let abSelectedHand = '';

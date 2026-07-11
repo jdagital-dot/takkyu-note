@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { loginWithEmail } from './helpers/login.js';
+import { setWheelScore } from './helpers/wheel.js';
 
 test('試合を記録するとホーム画面に表示される', async ({ page }) => {
   await loginWithEmail(page, process.env.TEST_EMAIL, process.env.TEST_PASSWORD);
@@ -10,10 +11,9 @@ test('試合を記録するとホーム画面に表示される', async ({ page 
 
   const opponentName = `テスト相手-${Date.now()}`;
   await page.fill('#opponent-name', opponentName);
-  const inputs = page.locator('input.score-input[data-side="my"]');
-  await inputs.nth(0).fill('11');
-  await inputs.nth(1).fill('11');
-  await inputs.nth(2).fill('11');
+  await setWheelScore(page, 0, 'my', 11);
+  await setWheelScore(page, 1, 'my', 11);
+  await setWheelScore(page, 2, 'my', 11);
 
   await page.click('button.submit-btn');
 
