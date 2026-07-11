@@ -1576,15 +1576,6 @@ function expandSet(idx) {
   renderSetRow(idx);
 }
 
-// 決着したセットを少し間を置いて畳む
-function collapseSetSoon(idx) {
-  setTimeout(() => {
-    const s = setScores[idx];
-    if (!s || !isSetDone(s.my, s.opp)) return;
-    s.collapsed = true;
-    renderSetRow(idx);
-  }, 200);
-}
 
 function autoCalcOther(val) {
   if (val <= 9)  return 11;     // 相手が勝った標準
@@ -1614,12 +1605,13 @@ function commitWheel(idx, side, val) {
   s[side] = val;
   // 値があれば反対側を自動計算（負けた側を合わせると勝った側に11が入る）
   if (val > 0) s[other] = autoCalcOther(val);
-  updateSetStatus(idx);
   if (isSetDone(s.my, s.opp)) {
-    // 反対側ホイールを回す演出は省略し、確定スコア入りのコンパクト表示へ直接切り替える
-    collapseSetSoon(idx);
-  } else if (val > 0) {
-    setWheelPosition(idx, other, s[other], true);
+    // 判定バッジの表示と畳みを同時に行う（確定スコア＋勝敗入りのコンパクト表示へ一発で切り替え）
+    s.collapsed = true;
+    renderSetRow(idx);
+  } else {
+    updateSetStatus(idx);
+    if (val > 0) setWheelPosition(idx, other, s[other], true);
   }
   maybeAutoAddSet();
 }
