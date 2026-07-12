@@ -3,9 +3,16 @@ import * as playerState from './player-state.js';
 import { esc } from './escape.js';
 
 let editingId = null;
+let deleteArmed = false;
+let selHand = '';
+let selType = '';
 
-const HAND_OPTIONS = ['', '右利き', '左利き'];
-const TYPE_OPTIONS = ['', 'シェークハンド裏裏', 'ペンホルダー', 'フォア表', 'バック表', 'バック粒高', 'ペン粒', 'カットマン（粒高）', 'カットマン（表）', 'その他'];
+const TYPE_OPTIONS = ['シェークハンド裏裏', 'ペンホルダー', 'フォア表', 'バック表', 'バック粒高', 'ペン粒', 'カットマン（粒高）', 'カットマン（表）', 'その他'];
+const TYPE_SHORT = {
+  'シェークハンド裏裏': 'シェーク裏裏',
+  'カットマン（粒高）': 'カット（粒高）',
+  'カットマン（表）': 'カット（表）',
+};
 const GRADE_OPTIONS = [
   ['u10', '小学生以下'],
   ['7', '小1'], ['8', '小2'], ['9', '小3'],
@@ -14,11 +21,15 @@ const GRADE_OPTIONS = [
   ['hs', '高校・一般'],
 ];
 
+const HAND_SVG_R = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0v5"/><path d="M14 10V4a2 2 0 0 0-4 0v6"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>';
+const HAND_SVG_L = HAND_SVG_R.replace('<svg ', '<svg style="transform:scaleX(-1);" ');
+
 function render(player = null) {
   const isEdit = !!player;
   const grade = player?.grade || '';
-  const hand = player?.hand || '';
-  const type = player?.play_type || '';
+  selHand = player?.hand || '';
+  selType = player?.play_type || '';
+
   document.getElementById('player-edit-content').innerHTML = `
     <div class="modal-header" style="margin-bottom:14px;">
       <div class="modal-title">${isEdit ? '選手を編集' : '選手を追加'}</div>
@@ -36,25 +47,48 @@ function render(player = null) {
           ${GRADE_OPTIONS.map(([v, l]) => `<option value="${v}"${v === grade ? ' selected' : ''}>${l}</option>`).join('')}
         </select>
       </div>
-      <div class="form-row">
-        <label for="player-edit-hand">利き手（任意）</label>
-        <select id="player-edit-hand">
-          ${HAND_OPTIONS.map(h => `<option value="${h}"${h === hand ? ' selected' : ''}>${h || '未設定'}</option>`).join('')}
-        </select>
+
+      <div>
+        <div style="font-size:12px; font-weight:700; color:#aaa; letter-spacing:0.5px; margin-bottom:8px;">利き手（任意）</div>
+        <div style="display:flex; gap:8px;">
+          <div class="type-btn pe-hand-btn ${selHand === '右利き' ? 'selected' : ''}" data-hand="右利き" onclick="playerEdit.pickHand(this,'右利き')" style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px;">${HAND_SVG_R}右利き</div>
+          <div class="type-btn pe-hand-btn ${selHand === '左利き' ? 'selected' : ''}" data-hand="左利き" onclick="playerEdit.pickHand(this,'左利き')" style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px;">${HAND_SVG_L}左利き</div>
+        </div>
       </div>
-      <div class="form-row">
-        <label for="player-edit-type">戦型（任意）</label>
-        <select id="player-edit-type">
-          ${TYPE_OPTIONS.map(t => `<option value="${t}"${t === type ? ' selected' : ''}>${t || '未設定'}</option>`).join('')}
-        </select>
+
+      <div>
+        <div style="font-size:12px; font-weight:700; color:#aaa; letter-spacing:0.5px; margin-bottom:8px;">戦型（任意）</div>
+        <div class="type-grid" style="grid-template-columns: repeat(2, 1fr);">
+          ${TYPE_OPTIONS.map((t, i, arr) => `
+            <div class="type-btn pe-type-btn ${selType === t ? 'selected' : ''}" data-type="${esc(t)}" onclick="playerEdit.pickType(this,'${esc(t)}')" ${i === arr.length - 1 ? 'style="grid-column: span 2;"' : ''}>${esc(TYPE_SHORT[t] || t)}</div>
+          `).join('')}
+        </div>
       </div>
+
       <div id="player-edit-message" style="padding:10px; border-radius:8px; display:none; font-size:13px;"></div>
-      <div style="display:flex; gap:10px; margin-top:8px;">
-        ${isEdit ? '<button id="player-edit-delete" onclick="playerEdit.handleDelete()" style="flex:1; padding:14px; background:#fff5f5; color:#e53935; border:1.5px solid #ffcdd2; border-radius:12px; font-weight:700; cursor:pointer; font-family:inherit;">削除</button>' : ''}
-        <button onclick="playerEdit.handleSave()" style="flex:${isEdit ? '2' : '1'}; padding:14px; background:linear-gradient(135deg,#e53935,#c62828); color:#fff; border:none; border-radius:12px; font-weight:700; cursor:pointer; font-family:inherit;">保存</button>
+      <div style="display:flex; gap:10px; margin-top:4px;">
+        ${isEdit ? '<button id="player-edit-delete" onclick="playerEdit.handleDelete()" style="flex:1; padding:15px; background:#fff5f5; color:#e53935; border:1.5px solid #ffcdd2; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit;">削除</button>' : ''}
+        <button onclick="playerEdit.handleSave()" style="flex:${isEdit ? '2' : '1'}; padding:15px; background:linear-gradient(135deg,#e53935,#c62828); color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:0 4px 16px rgba(229,57,53,0.3);">${isEdit ? '保存する' : '登録する'}</button>
       </div>
     </div>
   `;
+}
+
+// タップで選択、同じボタンをもう一度タップで解除（未設定に戻せる）
+export function pickHand(el, hand) {
+  const wasSelected = el.classList.contains('selected');
+  document.querySelectorAll('.pe-hand-btn').forEach(b => b.classList.remove('selected'));
+  if (wasSelected) { selHand = ''; return; }
+  el.classList.add('selected');
+  selHand = hand;
+}
+
+export function pickType(el, type) {
+  const wasSelected = el.classList.contains('selected');
+  document.querySelectorAll('.pe-type-btn').forEach(b => b.classList.remove('selected'));
+  if (wasSelected) { selType = ''; return; }
+  el.classList.add('selected');
+  selType = type;
 }
 
 function showMessage(text, isError = false) {
@@ -64,8 +98,6 @@ function showMessage(text, isError = false) {
   el.style.background = isError ? '#fff5f5' : '#e8f5e9';
   el.style.color = isError ? '#c62828' : '#2e7d32';
 }
-
-let deleteArmed = false;
 
 export function openAdd() {
   editingId = null;
@@ -90,21 +122,21 @@ export function close() {
 export async function handleSave() {
   const name = document.getElementById('player-edit-name').value.trim();
   const grade = document.getElementById('player-edit-grade').value;
-  const hand = document.getElementById('player-edit-hand').value || null;
-  const play_type = document.getElementById('player-edit-type').value || null;
   if (!name) return showMessage('名前を入力してください', true);
   if (!grade) return showMessage('学年を選択してください', true);
+  const wasEditing = !!editingId;
 
   try {
     if (editingId) {
-      await players.updatePlayer(editingId, { name, grade, hand, play_type });
+      await players.updatePlayer(editingId, { name, grade, hand: selHand || null, play_type: selType || null });
     } else {
-      const created = await players.createPlayer({ name, grade, hand, play_type });
+      const created = await players.createPlayer({ name, grade, hand: selHand || null, play_type: selType || null });
       playerState.setCurrentPlayerId(created.id);
     }
     close();
     if (window.playerUI) await window.playerUI.refreshSwitcher();
     if (typeof window.renderMatches === 'function') window.renderMatches();
+    if (typeof window.showToast === 'function') window.showToast(wasEditing ? '✓ 選手を更新しました' : '✓ 選手を登録しました');
   } catch (e) {
     showMessage(e.message || '保存に失敗しました', true);
   }
@@ -134,9 +166,10 @@ export async function handleDelete() {
     close();
     if (window.playerUI) await window.playerUI.refreshSwitcher();
     if (typeof window.renderMatches === 'function') window.renderMatches();
+    if (typeof window.showToast === 'function') window.showToast('選手を削除しました');
   } catch (e) {
     showMessage(e.message || '削除に失敗しました', true);
   }
 }
 
-window.playerEdit = { openAdd, openEdit, close, handleSave, handleDelete };
+window.playerEdit = { openAdd, openEdit, close, handleSave, handleDelete, pickHand, pickType };

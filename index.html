@@ -2084,14 +2084,19 @@ function showScreen(name) {
 let abSelectedHand = '';
 let abSelectedType = '';
 
+// タップで選択、同じボタンをもう一度タップで解除（未設定に戻せる）
 function selectAbHand(el, hand) {
+  const wasSelected = el.classList.contains('selected');
   document.querySelectorAll('.ab-hand-btn').forEach(b => b.classList.remove('selected'));
+  if (wasSelected) { abSelectedHand = ''; return; }
   el.classList.add('selected');
   abSelectedHand = hand;
 }
 
 function selectAbType(el, type) {
+  const wasSelected = el.classList.contains('selected');
   document.querySelectorAll('.ab-type-btn').forEach(b => b.classList.remove('selected'));
+  if (wasSelected) { abSelectedType = ''; return; }
   el.classList.add('selected');
   abSelectedType = type;
 }
