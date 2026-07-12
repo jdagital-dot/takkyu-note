@@ -205,6 +205,15 @@ const opponentsService = {
     opponentsCache.save(list);
     return o;
   },
+  async update(id, opp) {
+    const row = await opponents.updateOpponent(id, opp);
+    const o = opponents.rowToOpponent(row);
+    const list = opponentsCache.load();
+    const idx = list.findIndex(x => x.id === id);
+    if (idx >= 0) list[idx] = o;
+    opponentsCache.save(list);
+    return o;
+  },
   async delete(id) {
     await opponents.deleteOpponent(id);
     const list = opponentsCache.load().filter(x => x.id !== id);

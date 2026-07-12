@@ -32,6 +32,25 @@ export async function createOpponent(accountId, opp) {
   return data;
 }
 
+export async function updateOpponent(id, opp) {
+  const row = {
+    name: opp.name,
+    team: opp.team || null,
+    age: opp.age || null,
+    pref: opp.pref || null,
+    hand: opp.hand || null,
+    type: opp.type || null,
+  };
+  const { data, error } = await supabase
+    .from('opponents')
+    .update(row)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export async function deleteOpponent(id) {
   const { error } = await supabase
     .from('opponents')
