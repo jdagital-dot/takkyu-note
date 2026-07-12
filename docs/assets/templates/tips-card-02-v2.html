@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap');
+
+  :root {
+    --ink: #f8fafc;
+    --muted: #aebbd0;
+    --navy: #07111f;
+    --navy-soft: #0d2139;
+    --table: #0f5e83;
+    --line: rgba(170, 229, 255, .2);
+    --coral: #ff654f;
+    --orange: #ff9d42;
+    --lime: #c8f36b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1200px;
+    height: 675px;
+    overflow: hidden;
+    position: relative;
+    color: var(--ink);
+    font-family: 'Zen Kaku Gothic New', 'Hiragino Kaku Gothic ProN', sans-serif;
+    background:
+      radial-gradient(circle at 88% 18%, rgba(31, 144, 190, .30), transparent 31%),
+      radial-gradient(circle at 17% 110%, rgba(255, 101, 79, .18), transparent 32%),
+      linear-gradient(125deg, #06101d 0%, #09182a 52%, #0a2035 100%);
+  }
+
+  body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: .12;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 58px 58px;
+    background-position: 18px 0;
+  }
+
+  .edge {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 18px;
+    background: linear-gradient(180deg, #22a2d5, #0b557e);
+    box-shadow: 7px 0 0 rgba(255,255,255,.88);
+  }
+
+  .layout {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    padding: 44px 58px 36px 76px;
+    display: grid;
+    grid-template-columns: 58% 42%;
+    grid-template-rows: auto 1fr auto;
+  }
+
+  .topbar {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .series {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .series-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 5px;
+    color: #07111f;
+    background: var(--lime);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 2px;
+  }
+
+  .series-name {
+    color: var(--muted);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+  }
+
+  .free {
+    padding: 7px 16px 8px;
+    border: 1px solid rgba(255,255,255,.24);
+    border-radius: 999px;
+    background: rgba(255,255,255,.05);
+    color: #dce8f4;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+  }
+
+  .copy {
+    align-self: center;
+    padding: 22px 28px 10px 0;
+  }
+
+  .eyebrow {
+    margin-bottom: 15px;
+    color: var(--orange);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 5px;
+  }
+
+  h1 {
+    max-width: 650px;
+    font-size: 52px;
+    font-weight: 900;
+    line-height: 1.22;
+    letter-spacing: .4px;
+  }
+
+  h1 .accent {
+    color: var(--coral);
+    position: relative;
+    display: inline-block;
+  }
+
+  h1 .accent::after {
+    content: '';
+    position: absolute;
+    left: 2px;
+    right: 0;
+    bottom: 2px;
+    height: 8px;
+    z-index: -1;
+    background: rgba(255,101,79,.22);
+  }
+
+  .lead {
+    margin-top: 23px;
+    max-width: 570px;
+    color: #cbd6e4;
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1.85;
+  }
+
+  .lead strong { color: #fff; font-weight: 900; }
+
+  .visual {
+    align-self: center;
+    height: 442px;
+    position: relative;
+    margin: 5px 0 0 24px;
+  }
+
+  .visual::before {
+    content: '';
+    position: absolute;
+    width: 380px;
+    height: 380px;
+    top: 28px;
+    left: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(160, 222, 248, .16);
+    box-shadow:
+      inset 0 0 80px rgba(24, 119, 157, .08),
+      0 0 80px rgba(14, 93, 126, .12);
+  }
+
+  .trajectory {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .step {
+    position: absolute;
+    width: 238px;
+    min-height: 84px;
+    padding: 14px 14px 14px 56px;
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(21,48,74,.94), rgba(9,26,44,.92));
+    box-shadow: 0 15px 35px rgba(0,0,0,.25);
+  }
+
+  .step-1 { left: 0; top: 56px; }
+  .step-2 { right: 1px; top: 176px; }
+  .step-3 { left: 20px; bottom: 34px; }
+
+  .num {
+    position: absolute;
+    left: 13px;
+    top: 19px;
+    width: 31px;
+    height: 31px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #07111f;
+    background: #fffdf5;
+    box-shadow: 0 5px 12px rgba(0,0,0,.28);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+  }
+
+  .step b {
+    display: block;
+    font-size: 19px;
+    font-weight: 900;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+
+  .step small {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .4px;
+    white-space: nowrap;
+  }
+
+  .ball {
+    position: absolute;
+    top: 28px;
+    right: 58px;
+    width: 66px;
+    height: 66px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 31% 27%, #fff 0%, #f8f3e7 56%, #d7cfbd 100%);
+    box-shadow: 0 18px 28px rgba(0,0,0,.34), inset -5px -7px 11px rgba(72,59,35,.12);
+  }
+
+  .ball::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at -32% 128%, transparent 61%, rgba(145,133,111,.52) 61.8%, transparent 65%);
+  }
+
+  .footer {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-top: 4px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: var(--coral);
+    box-shadow: 0 9px 20px rgba(255,101,79,.24);
+    color: #fff;
+    font-size: 17px;
+    font-weight: 900;
+  }
+
+  .brand-name { font-size: 18px; font-weight: 900; }
+  .brand-note { margin-left: 7px; color: var(--muted); font-size: 13px; font-weight: 700; }
+
+  .next-win {
+    color: rgba(200,243,107,.9);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 17px;
+    letter-spacing: 4px;
+  }
+</style>
+</head>
+<body>
+  <div class="edge"></div>
+
+  <main class="layout">
+    <header class="topbar">
+      <div class="series">
+        <span class="series-mark">TIP 02</span>
+        <span class="series-name">卓球・記録のコツ</span>
+      </div>
+      <span class="free">今なら全機能無料</span>
+    </header>
+
+    <section class="copy">
+      <div class="eyebrow">LOSE → LEARN → NEXT WIN</div>
+      <h1><span class="accent">負けた試合</span>ほど、<br>記録する価値がある。</h1>
+      <p class="lead">気づきを残せば、「なんとなく苦手」が<br><strong>次に練習すべきこと</strong>へ変わります。</p>
+    </section>
+
+    <section class="visual" aria-label="記録が練習につながる3ステップ">
+      <svg class="trajectory" viewBox="0 0 500 442" fill="none" aria-hidden="true">
+        <path d="M86 92 C244 5 430 90 392 226 C355 353 168 425 88 349"
+          stroke="rgba(205,238,255,.36)" stroke-width="3" stroke-linecap="round" stroke-dasharray="3 11"/>
+      </svg>
+      <div class="ball"></div>
+
+      <div class="step step-1">
+        <span class="num">1</span>
+        <b>気づきをタグに</b>
+        <small>レシーブ・ラリー・メンタル</small>
+      </div>
+      <div class="step step-2">
+        <span class="num">2</span>
+        <b>課題が見える</b>
+        <small>感覚が、言葉と数字に変わる</small>
+      </div>
+      <div class="step step-3">
+        <span class="num">3</span>
+        <b>練習が変わる</b>
+        <small>次にやるべきことが決まる</small>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="brand">
+        <span class="logo">卓</span>
+        <span class="brand-name">卓球記録ノート</span>
+        <span class="brand-note">試合を記録して、強くなる</span>
+      </div>
+      <span class="next-win">MAKE THE NEXT POINT.</span>
+    </footer>
+  </main>
+</body>
+</html>
