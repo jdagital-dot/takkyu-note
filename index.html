@@ -122,10 +122,19 @@
     align-items: flex-start;
     margin-bottom: 8px;
   }
+  .opponent-line {
+    display: flex; align-items: baseline; gap: 8px;
+    min-width: 0; flex: 1; margin-right: 8px;
+  }
   .opponent-name {
     font-size: 16px; font-weight: 700; color: #1a1a2e;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    min-width: 0; flex: 1; margin-right: 8px;
+    flex-shrink: 0; max-width: 65%;
+  }
+  .opponent-team {
+    font-size: 12px; color: #999; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    min-width: 0;
   }
   .win-badge {
     font-size: 12px;
@@ -1700,13 +1709,15 @@ function renderMatches() {
       <div class="card-stripe ${m.win ? 'stripe-win' : 'stripe-lose'}"></div>
       <div class="card-body">
         <div class="card-top">
-          ${m.opponent
-            ? `<div class="opponent-name">${esc(m.opponent)}</div>`
-            : `<div class="opponent-name" style="color:#bbb; font-weight:600;">相手名未入力</div>`}
+          <div class="opponent-line">
+            ${m.opponent
+              ? `<span class="opponent-name">${esc(m.opponent)}</span>`
+              : `<span class="opponent-name" style="color:#bbb; font-weight:600;">相手名未入力</span>`}
+            ${m.team && m.team !== '未入力' ? `<span class="opponent-team">${esc(m.team)}</span>` : ''}
+          </div>
           <span class="win-badge ${m.win ? 'badge-win' : 'badge-lose'}">${m.win ? '勝ち' : '負け'}</span>
         </div>
         <div class="card-meta">
-          ${m.team && m.team !== '未入力' ? `<span class="meta-tag">${esc(m.team)}</span>` : ''}
           ${m.hand ? `<span class="meta-tag">${esc(m.hand)}</span>` : ''}
           <span class="meta-tag">${esc(m.type)}</span>
           <span class="meta-tag">${esc(m.pref)}</span>
