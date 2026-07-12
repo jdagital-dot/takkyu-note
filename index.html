@@ -335,6 +335,24 @@
   }
   .wheel-pad { height: 40px; }
 
+  /* ピッカーの絞り込みセレクト */
+  .picker-filter {
+    flex: 1;
+    border: 1.5px solid #e8e8e8;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    background: #fafafa;
+    color: #555;
+  }
+  .picker-filter.active {
+    border-color: #e53935;
+    background: #fff5f5;
+    color: #e53935;
+  }
+
   /* 決着したセットのコンパクト表示（タップで再度開ける） */
   .score-set.compact {
     cursor: pointer;
@@ -1175,8 +1193,14 @@ function getRecentOpponents() {
   return matches
     .filter(m => m.opponent)
     .filter(m => { if (seen.has(m.opponent)) return false; seen.add(m.opponent); return true; })
-    .slice(0, 5)
-    .map(m => ({ name: m.opponent, team: m.team, age: m.age, pref: m.pref, type: m.type }));
+    .map(m => ({
+      name: m.opponent,
+      team: m.team === '未入力' ? '' : m.team,
+      age: m.age,
+      pref: m.pref === '不明' ? '' : m.pref,
+      hand: m.hand || '',
+      type: m.type === '不明' ? '' : m.type,
+    }));
 }
 
 function fillOpponent(p) {
@@ -1207,19 +1231,25 @@ let _pickerTeams = [];
 function togglePickerTeam(i) {
   const t = _pickerTeams[i];
   pickerTeam = pickerTeam === t ? '' : t;
-  renderPicker();
+  renderPickerResults();
 }
 
 function renderPickerRow(p, i) {
   const initial = p.name ? p.name[0] : '?';
+  const sub = [
+    p.team ? esc(p.team) : '',
+    p.pref ? esc(p.pref) : '',
+    gradeLabel(p.age),
+    p.hand ? esc(p.hand) : '',
+  ].filter(Boolean).join(' ・ ');
   return `
     <div class="picker-row" onclick="fillOpponent(_pickerItems[${i}])">
       <div class="picker-avatar">${esc(initial)}</div>
       <div class="picker-info">
         <div class="picker-name">${esc(p.name || p.team)}</div>
-        <div class="picker-sub">${esc(p.team)} ・ ${esc(p.pref)} ・ ${gradeLabel(p.age)}</div>
+        <div class="picker-sub">${sub}</div>
       </div>
-      <span class="picker-type-tag">${esc(p.type)}</span>
+      ${p.type ? `<span class="picker-type-tag">${esc(TYPE_SHORT_NAMES[p.type] || p.type)}</span>` : ''}
     </div>
   `;
 }
@@ -1260,25 +1290,72 @@ function gradeLabel(age) {
   return GRADES.find(g => g.val === v)?.label || `${age}歳`;
 }
 
+// ピッカーの候補: アドレス帳 + 過去の対戦相手（アドレス帳と同名は除く）を名前順で
+function getPickerCandidates() {
+  const abNames = new Set(addressBook.map(p => p.name));
+  return [
+    ...addressBook,
+    ...getRecentOpponents().filter(p => !abNames.has(p.name))
+  ].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
+}
+
 function openPicker() {
   pickerQuery = '';
   pickerPref = '';
   pickerGrade = '';
   pickerTeam = '';
-  renderPicker();
+  renderPickerShell();
+  renderPickerResults();
   document.getElementById('picker-modal').classList.add('show');
-  setTimeout(() => document.getElementById('picker-search') && document.getElementById('picker-search').focus(), 100);
 }
 
-function renderPicker() {
-  const recent = getRecentOpponents();
-  const abNames = new Set(addressBook.map(p => p.name));
-  const allCandidates = [
-    ...addressBook,
-    ...recent.filter(p => !abNames.has(p.name))
-  ];
+// 外枠（ヘッダー・検索・フィルター）はモーダルを開いたとき1回だけ生成する。
+// 入力のたびに作り直すと検索欄のフォーカスが失われるため、結果側だけを更新する。
+function renderPickerShell() {
+  const allCandidates = getPickerCandidates();
+  const prefsAvailable = [...new Set(allCandidates.map(p => p.pref).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'ja'));
+  const prefOptions = [`<option value="">すべての県</option>`,
+    ...prefsAvailable.map(pf => `<option value="${esc(pf)}">${esc(pf)}</option>`)
+  ].join('');
+  const gradeOptions = [{ label: '学年', val: '' }, ...GRADES].map(g =>
+    `<option value="${g.val}">${g.label}</option>`
+  ).join('');
 
-  // 絞り込み
+  document.getElementById('picker-content').innerHTML = `
+    <div style="flex-shrink:0;">
+      <div class="modal-header" style="margin-bottom:8px;">
+        <div class="modal-title">対戦相手を選ぶ</div>
+        <button class="modal-close" onclick="closePicker()" aria-label="閉じる">×</button>
+      </div>
+
+      <input id="picker-search" type="text" placeholder="名前・チームで検索" autocomplete="off"
+        oninput="pickerQuery=this.value; renderPickerResults();"
+        style="width:100%; border:1.5px solid #e8e8e8; border-radius:10px; padding:10px 14px; font-size:16px; font-family:inherit; outline:none; margin-bottom:10px; background:#fafafa;">
+
+      <div style="display:flex; gap:6px; margin-bottom:8px;">
+        <select id="picker-pref" class="picker-filter" aria-label="県で絞り込み"
+          onchange="pickerPref=this.value; pickerTeam=''; this.classList.toggle('active', !!pickerPref); renderPickerResults();">
+          ${prefOptions}
+        </select>
+        <select id="picker-grade" class="picker-filter" aria-label="学年で絞り込み"
+          onchange="pickerGrade=this.value; this.classList.toggle('active', !!pickerGrade); renderPickerResults();">
+          ${gradeOptions}
+        </select>
+      </div>
+
+      <div id="picker-team-tags" style="height:52px; overflow-x:auto; overflow-y:hidden; display:flex; align-items:center; gap:6px; padding:4px 2px; margin-bottom:8px; scrollbar-width:none;"></div>
+
+      <div id="picker-count" style="font-size:12px; color:#aaa; margin-bottom:4px;"></div>
+    </div>
+
+    <div id="picker-list" style="flex:1; overflow-y:auto; margin: 0 -20px; padding: 0 20px;"></div>
+  `;
+}
+
+function renderPickerResults() {
+  const allCandidates = getPickerCandidates();
+
   const q = pickerQuery.trim();
   const filtered = allCandidates.filter(p => {
     const matchQ = !q || p.name.includes(q) || (p.team && p.team.includes(q));
@@ -1288,26 +1365,15 @@ function renderPicker() {
     return matchQ && matchPref && matchGrade && matchTeam;
   });
 
-  // 登録データに存在する県だけをフィルター候補に出す
-  const prefsAvailable = [...new Set(allCandidates.map(p => p.pref).filter(Boolean))].sort();
-  const prefOptions = [`<option value="">すべての県</option>`,
-    ...prefsAvailable.map(pf => `<option value="${esc(pf)}"${pickerPref===pf?' selected':''}>${esc(pf)}</option>`)
-  ].join('');
-
   // 県が選ばれていればその県のチームだけ、なければ全チーム
   const teamsInPref = [...new Set(
     allCandidates
       .filter(p => !pickerPref || p.pref === pickerPref)
       .map(p => p.team).filter(Boolean)
-  )].sort();
+  )].sort((a, b) => a.localeCompare(b, 'ja'));
 
-  const gradeOptions = [{ label: '学年', val: '' }, ...GRADES].map(g =>
-    `<option value="${g.val}"${pickerGrade===g.val?' selected':''}>${g.label}</option>`
-  ).join('');
-
-  // チームタグエリアは固定高さ（2行分）で中身だけ変わる
   _pickerTeams = teamsInPref;
-  const teamTagsHtml = teamsInPref.length === 0
+  document.getElementById('picker-team-tags').innerHTML = teamsInPref.length === 0
     ? `<span style="font-size:12px; color:#ccc;">チームなし</span>`
     : teamsInPref.map((t, i) => `
         <button onclick="togglePickerTeam(${i})"
@@ -1315,51 +1381,12 @@ function renderPicker() {
           ${esc(t)}
         </button>`).join('');
 
+  document.getElementById('picker-count').textContent = `${filtered.length}件`;
+
   _pickerItems = filtered;
-  const listHtml = filtered.length === 0
+  document.getElementById('picker-list').innerHTML = filtered.length === 0
     ? `<div class="picker-empty">該当する選手が見つかりません</div>`
     : filtered.map((p, i) => renderPickerRow(p, i)).join('');
-
-  const html = `
-    <!-- 固定ヘッダー部分 -->
-    <div style="flex-shrink:0;">
-      <div class="modal-header" style="margin-bottom:8px;">
-        <div class="modal-title">対戦相手を選ぶ</div>
-        <button class="modal-close" onclick="closePicker()" aria-label="閉じる">×</button>
-      </div>
-
-      <input id="picker-search" type="text" placeholder="名前で検索..." autocomplete="off"
-        value="${esc(pickerQuery)}"
-        oninput="pickerQuery=this.value; renderPicker();"
-        style="width:100%; border:1.5px solid #e8e8e8; border-radius:10px; padding:10px 14px; font-size:16px; font-family:inherit; outline:none; margin-bottom:10px;">
-
-      <!-- 県・学年フィルター（1行2カラム） -->
-      <div style="display:flex; gap:6px; margin-bottom:8px;">
-        <select onchange="pickerPref=this.value; pickerTeam=''; renderPicker();" aria-label="県で絞り込み"
-          style="flex:1; border:1.5px solid ${pickerPref?'#e53935':'#e8e8e8'}; border-radius:10px; padding:8px 12px; font-size:13px; font-family:inherit; outline:none; background:${pickerPref?'#fff5f5':'#fafafa'}; color:${pickerPref?'#e53935':'#555'};">
-          ${prefOptions}
-        </select>
-        <select onchange="pickerGrade=this.value; renderPicker();" aria-label="学年で絞り込み"
-          style="flex:1; border:1.5px solid ${pickerGrade?'#e53935':'#e8e8e8'}; border-radius:10px; padding:8px 12px; font-size:13px; font-family:inherit; outline:none; background:${pickerGrade?'#fff5f5':'#fafafa'}; color:${pickerGrade?'#e53935':'#555'};">
-          ${gradeOptions}
-        </select>
-      </div>
-
-      <!-- チームタグ（固定高さ・内部スクロール） -->
-      <div style="height:52px; overflow-x:auto; overflow-y:hidden; display:flex; align-items:center; gap:6px; padding:4px 2px; margin-bottom:8px; scrollbar-width:none;">
-        ${teamTagsHtml}
-      </div>
-
-      <div style="font-size:12px; color:#aaa; margin-bottom:4px;">${filtered.length}件</div>
-    </div>
-
-    <!-- スクロール可能な結果リスト -->
-    <div style="flex:1; overflow-y:auto; margin: 0 -20px; padding: 0 20px;">
-      ${listHtml}
-    </div>
-  `;
-
-  document.getElementById('picker-content').innerHTML = html;
 }
 
 function closePicker() {
