@@ -1713,14 +1713,17 @@ function renderMatches() {
             ${m.opponent
               ? `<span class="opponent-name">${esc(m.opponent)}</span>`
               : `<span class="opponent-name" style="color:#bbb; font-weight:600;">相手名未入力</span>`}
-            ${m.team && m.team !== '未入力' ? `<span class="opponent-team">${esc(m.team)}</span>` : ''}
+            ${(() => {
+              const team = m.team && m.team !== '未入力' ? esc(m.team) : '';
+              const pref = m.pref && m.pref !== '不明' ? `（${esc(m.pref)}）` : '';
+              return (team || pref) ? `<span class="opponent-team">${team}${pref}</span>` : '';
+            })()}
           </div>
           <span class="win-badge ${m.win ? 'badge-win' : 'badge-lose'}">${m.win ? '勝ち' : '負け'}</span>
         </div>
         <div class="card-meta">
           ${m.hand ? `<span class="meta-tag">${esc(m.hand)}</span>` : ''}
           <span class="meta-tag">${esc(m.type)}</span>
-          <span class="meta-tag">${esc(m.pref)}</span>
           <span class="meta-tag">${esc(m.matchType)}</span>
         </div>
         <div class="card-bottom">
