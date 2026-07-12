@@ -628,6 +628,17 @@
     padding: 12px 0 6px;
     text-transform: uppercase;
   }
+  .picker-last {
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .picker-last.win { color: #2e7d32; }
+  .picker-last.lose { color: #c62828; }
   .picker-row {
     display: flex;
     align-items: center;
@@ -1223,6 +1234,7 @@ function fillOpponent(p) {
 
   closePicker();
   closeAbModal();
+  showToast(`✓ ${p.name || p.team} の情報を入力しました`);
 }
 
 let _pickerItems = [];
@@ -1234,6 +1246,8 @@ function togglePickerTeam(i) {
   renderPickerResults();
 }
 
+let _pickerLastByName = new Map();
+
 function renderPickerRow(p, i) {
   const initial = p.name ? p.name[0] : '?';
   const sub = [
@@ -1242,12 +1256,23 @@ function renderPickerRow(p, i) {
     gradeLabel(p.age),
     p.hand ? esc(p.hand) : '',
   ].filter(Boolean).join(' ・ ');
+
+  // 前回の対戦結果（この相手との最新の試合）
+  const last = _pickerLastByName.get(p.name);
+  let lastHtml = '';
+  if (last) {
+    const d = last._remoteRow?.date;
+    const dShort = d ? `${parseInt(d.slice(5, 7))}/${parseInt(d.slice(8, 10))}` : '';
+    lastHtml = `<div class="picker-last ${last.win ? 'win' : 'lose'}">前回${dShort ? ' ' + dShort : ''} ${last.win ? '勝ち' : '負け'}${last.score && last.score !== '—' ? '｜' + esc(last.score) : ''}</div>`;
+  }
+
   return `
     <div class="picker-row" onclick="fillOpponent(_pickerItems[${i}])">
       <div class="picker-avatar">${esc(initial)}</div>
       <div class="picker-info">
         <div class="picker-name">${esc(p.name || p.team)}</div>
         <div class="picker-sub">${sub}</div>
+        ${lastHtml}
       </div>
       ${p.type ? `<span class="picker-type-tag">${esc(TYPE_SHORT_NAMES[p.type] || p.type)}</span>` : ''}
     </div>
@@ -1356,6 +1381,12 @@ function renderPickerShell() {
 function renderPickerResults() {
   const allCandidates = getPickerCandidates();
 
+  // 相手名 → 最新の試合（matches は新しい順なので最初の一致が最新）
+  _pickerLastByName = new Map();
+  matches.forEach(m => {
+    if (m.opponent && !_pickerLastByName.has(m.opponent)) _pickerLastByName.set(m.opponent, m);
+  });
+
   const q = pickerQuery.trim();
   const filtered = allCandidates.filter(p => {
     const matchQ = !q || p.name.includes(q) || (p.team && p.team.includes(q));
@@ -1384,9 +1415,45 @@ function renderPickerResults() {
   document.getElementById('picker-count').textContent = `${filtered.length}件`;
 
   _pickerItems = filtered;
-  document.getElementById('picker-list').innerHTML = filtered.length === 0
-    ? `<div class="picker-empty">該当する選手が見つかりません</div>`
-    : filtered.map((p, i) => renderPickerRow(p, i)).join('');
+  const hasFilter = q || pickerPref || pickerGrade || pickerTeam;
+  let listHtml;
+  if (filtered.length === 0) {
+    // 見つからないとき: 検索語をそのまま相手名として使える導線を出す
+    listHtml = `<div class="picker-empty">該当する選手が見つかりません</div>`;
+    if (q) {
+      listHtml += `
+        <div style="text-align:center; padding:0 20px 16px;">
+          <button onclick="usePickerQueryAsName()" style="width:100%; border:1.5px dashed #e53935; background:#fff5f5; color:#e53935; border-radius:12px; padding:13px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">「${esc(q)}」を相手の名前に入力する</button>
+        </div>`;
+    }
+  } else if (!hasFilter) {
+    // 絞り込みなしのとき: 最近対戦した相手を先頭セクションに出す
+    const recentNames = [];
+    for (const m of matches) {
+      if (m.opponent && !recentNames.includes(m.opponent)) recentNames.push(m.opponent);
+      if (recentNames.length >= 5) break;
+    }
+    const recentItems = recentNames
+      .map(n => filtered.find(p => p.name === n))
+      .filter(Boolean);
+    const recentHtml = recentItems.length
+      ? `<div class="picker-section-title">最近の対戦相手</div>` +
+        recentItems.map(p => renderPickerRow(p, filtered.indexOf(p))).join('')
+      : '';
+    listHtml = recentHtml +
+      `<div class="picker-section-title">すべての選手（名前順）</div>` +
+      filtered.map((p, i) => renderPickerRow(p, i)).join('');
+  } else {
+    listHtml = filtered.map((p, i) => renderPickerRow(p, i)).join('');
+  }
+  document.getElementById('picker-list').innerHTML = listHtml;
+}
+
+function usePickerQueryAsName() {
+  const q = pickerQuery.trim();
+  if (q) document.getElementById('opponent-name').value = q;
+  closePicker();
+  showToast(`「${q}」を相手の名前に入力しました`);
 }
 
 function closePicker() {
