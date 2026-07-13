@@ -810,6 +810,12 @@
     </div>
   </div>
 
+  <!-- デモモードのバナー（デモ中のみ表示・flexレイアウトで画面全体を押し下げる） -->
+  <div id="demo-banner" style="display:none; align-items:center; justify-content:center; gap:10px; background:#1a1a2e; color:#fff; padding:8px 12px; font-size:12px; font-weight:600; flex-shrink:0; position:relative; z-index:60;">
+    <span>デモ体験中・記録は保存されません</span>
+    <button onclick="window.demoMode && window.demoMode.exit()" style="background:#e53935; color:#fff; border:none; border-radius:8px; padding:5px 12px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit;">登録して始める</button>
+  </div>
+
   <!-- 認証画面（未ログイン時のみ表示） -->
   <div class="screen" id="screen-auth" style="display:none; flex-direction:column; padding:24px; justify-content:center; flex:1;">
     <div style="text-align:center; margin-bottom:20px;">
@@ -875,7 +881,7 @@
         <p><span id="current-year"></span>年 ・ 通算 <span id="total-count">0</span>試合</p>
       </div>
       <div id="player-switcher-mount" style="flex-shrink:0;"></div>
-      <button onclick="window.performLogout && window.performLogout()" style="background:none; border:1px solid #e0e0e0; color:#888; font-size:11px; cursor:pointer; padding:6px 10px; border-radius:8px; font-family:inherit; flex-shrink:0;">ログアウト</button>
+      <button id="logout-btn" onclick="window.performLogout && window.performLogout()" style="background:none; border:1px solid #e0e0e0; color:#888; font-size:11px; cursor:pointer; padding:6px 10px; border-radius:8px; font-family:inherit; flex-shrink:0;">ログアウト</button>
     </div>
     <div class="summary-bar">
       <div class="stat-box">

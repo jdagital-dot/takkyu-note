@@ -11,6 +11,7 @@ import * as matches from './matches.js';
 import * as matchesCache from './matches-cache.js';
 import * as opponents from './opponents.js';
 import * as opponentsCache from './opponents-cache.js';
+import * as demoMode from './demo-mode.js';
 
 window.supabase = supabase;
 window.auth = auth;
