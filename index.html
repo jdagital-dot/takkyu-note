@@ -911,6 +911,7 @@
       </div>
     </div>
     <div class="section-title">最近の試合</div>
+    <div id="match-filter-shell"></div>
     <div id="match-list"></div>
     <div style="text-align:center; padding:20px 0 8px;">
       <a href="mailto:takkyuu.note@gmail.com?subject=%E3%80%90%E5%8D%93%E7%90%83%E8%A8%98%E9%8C%B2%E3%83%8E%E3%83%BC%E3%83%88%E3%80%91%E3%81%94%E6%84%8F%E8%A6%8B%E3%83%BB%E4%B8%8D%E5%85%B7%E5%90%88%E5%A0%B1%E5%91%8A" style="font-size:12px; color:#aaa;">ご意見・不具合報告はこちら</a>
@@ -1196,6 +1197,13 @@ function esc(s) {
 
 // サンプルデータ
 let matches = [];
+
+// 試合一覧の絞り込み状態
+let matchFilterQuery = '';
+let matchFilterResult = '';
+let matchFilterType = '';
+let matchFilterMatchType = '';
+let matchFilterPeriod = '';
 
 let selectedType = '';
 let selectedHand = '';
@@ -1879,8 +1887,6 @@ function initSets() {
 }
 
 function renderMatches() {
-  const list = document.getElementById('match-list');
-  list.innerHTML = '';
   document.getElementById('current-year').textContent = new Date().getFullYear();
   const wins = matches.filter(m => m.win).length;
   document.getElementById('total-count').textContent = matches.length;
@@ -1892,20 +1898,169 @@ function renderMatches() {
   renderAnalysis();
   updateTeamSuggestions();
 
+  // 絞り込み欄（検索・セレクト）は試合データが変わったときだけ作り直す
+  renderMatchFilterShell();
+  renderMatchList();
+  saveToStorage();
+}
+
+// 試合日を YYYY-MM-DD で取得（期間絞り込み用）。_remoteRow が無いデータは
+// 表示用の日本語表記「2026年7月10日」からフォールバックで復元する。
+function matchDateISO(m) {
+  if (m._remoteRow?.date) return m._remoteRow.date;
+  const jp = (m.date || '').match(/(\d+)年(\d+)月(\d+)日/);
+  if (jp) return `${jp[1]}-${String(jp[2]).padStart(2, '0')}-${String(jp[3]).padStart(2, '0')}`;
+  return '';
+}
+
+function matchPassesFilters(m) {
+  const q = matchFilterQuery.trim();
+  if (q && !((m.opponent && m.opponent.includes(q)) || (m.team && m.team !== '未入力' && m.team.includes(q)))) return false;
+  if (matchFilterResult === 'win' && !m.win) return false;
+  if (matchFilterResult === 'lose' && m.win) return false;
+  if (matchFilterType && m.type !== matchFilterType) return false;
+  if (matchFilterMatchType && m.matchType !== matchFilterMatchType) return false;
+  if (matchFilterPeriod) {
+    const iso = matchDateISO(m);
+    const d = iso ? new Date(iso) : null;
+    if (!d || isNaN(d)) return false;
+    const now = new Date();
+    if (matchFilterPeriod === '1m') {
+      const cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 1);
+      if (d < cutoff) return false;
+    } else if (matchFilterPeriod === '3m') {
+      const cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 3);
+      if (d < cutoff) return false;
+    } else if (matchFilterPeriod === 'year') {
+      if (d.getFullYear() !== now.getFullYear()) return false;
+    }
+  }
+  return true;
+}
+
+function isMatchFilterActive() {
+  return !!(matchFilterQuery.trim() || matchFilterResult || matchFilterType || matchFilterMatchType || matchFilterPeriod);
+}
+
+function clearMatchFilters() {
+  matchFilterQuery = '';
+  matchFilterResult = '';
+  matchFilterType = '';
+  matchFilterMatchType = '';
+  matchFilterPeriod = '';
+  renderMatchFilterShell();
+  renderMatchList();
+}
+
+// 外枠（検索欄・セレクト）は試合データが変わったときだけ作り直す。
+// 入力のたびに作り直すと検索欄のフォーカス・キーボードが失われるため、
+// 入力/選択時は renderMatchList() だけを呼んで結果側だけ更新する。
+function renderMatchFilterShell() {
+  const shell = document.getElementById('match-filter-shell');
+  if (!shell) return;
+
   if (matches.length === 0) {
+    shell.innerHTML = '';
+    return;
+  }
+
+  const typesPresent = [...new Set(matches.map(m => m.type).filter(t => t && t !== '不明'))];
+  const matchTypesPresent = [...new Set(matches.map(m => m.matchType).filter(Boolean))];
+
+  // 選択中の戦型/試合種別がデータ変更で選択肢から消えた場合はフィルターを解除する
+  // （選択肢に無い値が残ると、セレクトの表示と実際の絞り込み状態がズレるため）
+  if (matchFilterType && !typesPresent.includes(matchFilterType)) matchFilterType = '';
+  if (matchFilterMatchType && !matchTypesPresent.includes(matchFilterMatchType)) matchFilterMatchType = '';
+
+  const typeOptionsHtml = typesPresent.map(t =>
+    `<option value="${esc(t)}"${matchFilterType === t ? ' selected' : ''}>${esc(TYPE_SHORT_NAMES[t] || t)}</option>`
+  ).join('');
+  const matchTypeOptionsHtml = matchTypesPresent.map(t =>
+    `<option value="${esc(t)}"${matchFilterMatchType === t ? ' selected' : ''}>${esc(t)}</option>`
+  ).join('');
+
+  shell.innerHTML = `
+    <div style="padding: 0 20px 8px;">
+      <input id="match-search" type="text" placeholder="相手名・チーム名で検索" autocomplete="off"
+        value="${esc(matchFilterQuery)}"
+        oninput="matchFilterQuery=this.value; renderMatchList();"
+        style="width:100%; border:1.5px solid #e8e8e8; border-radius:10px; padding:9px 14px; font-size:15px; font-family:inherit; outline:none; margin-bottom:8px; background:#fafafa; box-sizing:border-box;">
+      <div style="display:flex; gap:6px; margin-bottom:6px;">
+        <select class="picker-filter${matchFilterResult ? ' active' : ''}" aria-label="勝敗で絞り込み"
+          onchange="matchFilterResult=this.value; this.classList.toggle('active', !!matchFilterResult); renderMatchList();">
+          <option value="">勝敗すべて</option>
+          <option value="win"${matchFilterResult === 'win' ? ' selected' : ''}>勝ちのみ</option>
+          <option value="lose"${matchFilterResult === 'lose' ? ' selected' : ''}>負けのみ</option>
+        </select>
+        <select class="picker-filter${matchFilterPeriod ? ' active' : ''}" aria-label="期間で絞り込み"
+          onchange="matchFilterPeriod=this.value; this.classList.toggle('active', !!matchFilterPeriod); renderMatchList();">
+          <option value="">期間すべて</option>
+          <option value="1m"${matchFilterPeriod === '1m' ? ' selected' : ''}>直近1か月</option>
+          <option value="3m"${matchFilterPeriod === '3m' ? ' selected' : ''}>直近3か月</option>
+          <option value="year"${matchFilterPeriod === 'year' ? ' selected' : ''}>今年</option>
+        </select>
+      </div>
+      ${(typesPresent.length > 0 || matchTypesPresent.length > 0) ? `
+      <div style="display:flex; gap:6px; margin-bottom:6px;">
+        ${typesPresent.length > 0 ? `
+        <select class="picker-filter${matchFilterType ? ' active' : ''}" aria-label="戦型で絞り込み"
+          onchange="matchFilterType=this.value; this.classList.toggle('active', !!matchFilterType); renderMatchList();">
+          <option value="">戦型すべて</option>
+          ${typeOptionsHtml}
+        </select>` : ''}
+        ${matchTypesPresent.length > 0 ? `
+        <select class="picker-filter${matchFilterMatchType ? ' active' : ''}" aria-label="試合種別で絞り込み"
+          onchange="matchFilterMatchType=this.value; this.classList.toggle('active', !!matchFilterMatchType); renderMatchList();">
+          <option value="">試合種別すべて</option>
+          ${matchTypeOptionsHtml}
+        </select>` : ''}
+      </div>` : ''}
+      <div id="match-filter-count" style="font-size:11.5px; color:#aaa; display:flex; justify-content:space-between; align-items:center; min-height:16px;"></div>
+    </div>
+  `;
+}
+
+function renderMatchList() {
+  const list = document.getElementById('match-list');
+  const countEl = document.getElementById('match-filter-count');
+
+  if (matches.length === 0) {
+    if (countEl) countEl.innerHTML = '';
     list.innerHTML = `
       <div style="text-align:center; padding:48px 24px; color:#aaa;">
         <div style="font-size:15px; font-weight:600; color:#888; margin-bottom:8px;">まだ試合の記録がありません</div>
         <div style="font-size:13px; line-height:1.7; margin-bottom:20px;">右下の「＋」から<br>最初の試合を記録してみましょう。</div>
       </div>
     `;
+    return;
+  }
+
+  const filtered = matches.filter(matchPassesFilters);
+  const filterActive = isMatchFilterActive();
+
+  if (countEl) {
+    countEl.innerHTML = filterActive
+      ? `<span>${filtered.length}件 / 全${matches.length}件</span><span style="color:#e53935; cursor:pointer; font-weight:600;" onclick="clearMatchFilters()">絞り込みをクリア</span>`
+      : '';
+  }
+
+  list.innerHTML = '';
+
+  if (filtered.length === 0) {
+    list.innerHTML = `
+      <div style="text-align:center; padding:40px 24px; color:#aaa;">
+        <div style="font-size:14px; font-weight:600; color:#888; margin-bottom:8px;">条件に一致する試合がありません</div>
+        <div style="font-size:12.5px; color:#e53935; cursor:pointer; font-weight:600; display:inline-block;" onclick="clearMatchFilters()">絞り込みをクリア</div>
+      </div>
+    `;
+    return;
   }
 
   // 自分側の表示情報（現在選択中の選手）
   const me = getCurrentPlayer();
   const myName = me?.name || 'あなた';
 
-  matches.forEach(m => {
+  filtered.forEach(m => {
     const card = document.createElement('div');
     card.className = 'match-card';
     card.innerHTML = `
@@ -1940,7 +2095,6 @@ function renderMatches() {
     card.onclick = () => showDetail(m);
     list.appendChild(card);
   });
-  saveToStorage();
 }
 
 const TYPE_SHORT_NAMES = {
