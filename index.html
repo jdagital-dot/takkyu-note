@@ -366,6 +366,99 @@
     color: #e53935;
   }
 
+  /* 試合一覧の検索欄・絞り込みボタン */
+  .match-search-box {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    background: #fafafa;
+    border: 1.5px solid #e8e8e8;
+    border-radius: 11px;
+    padding: 9px 12px;
+  }
+  .match-search-box svg { flex-shrink: 0; color: #b7bcc4; }
+  .match-search-box input {
+    border: none;
+    outline: none;
+    background: none;
+    font: inherit;
+    font-size: 15px;
+    color: #1a1a2e;
+    width: 100%;
+    min-width: 0;
+  }
+  .match-search-box input::placeholder { color: #b7bcc4; }
+  .match-filter-btn {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    border: 1.5px solid #e8e8e8;
+    background: #fafafa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #7c828c;
+    cursor: pointer;
+    position: relative;
+    padding: 0;
+  }
+  .match-filter-btn.active {
+    border-color: #e53935;
+    background: #fff5f5;
+    color: #e53935;
+  }
+  .match-filter-btn .badge-dot {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #e53935;
+    color: #fff;
+    font-size: 9.5px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-shadow: 0 0 0 2px #fff;
+  }
+  .filter-sheet-field { margin-bottom: 14px; }
+  .filter-sheet-field label {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #9aa0aa;
+    margin-bottom: 6px;
+  }
+  .filter-sheet-field select {
+    width: 100%;
+    font: inherit;
+    font-size: 14px;
+    color: #1a1a2e;
+    background: #fafafa;
+    border: 1.5px solid #e8e8e8;
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .filter-sheet-actions { display: flex; gap: 8px; margin-top: 18px; }
+  .filter-sheet-actions .btn {
+    flex: 1;
+    border: none;
+    border-radius: 11px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .filter-sheet-actions .btn.primary { background: #1a1a2e; color: #fff; }
+  .filter-sheet-actions .btn.ghost { background: #f2f3f5; color: #666; }
+
   /* 決着したセットのコンパクト表示（タップで再度開ける） */
   .score-set.compact {
     cursor: pointer;
@@ -1136,6 +1229,11 @@
   <!-- 選手追加・編集モーダル -->
   <div class="modal-overlay" id="player-edit-modal">
     <div class="modal" id="player-edit-content"></div>
+  </div>
+
+  <!-- 試合絞り込みシート -->
+  <div class="modal-overlay" id="match-filter-modal">
+    <div class="modal" id="match-filter-modal-content"></div>
   </div>
 
   <!-- トースト -->
@@ -1952,9 +2050,22 @@ function clearMatchFilters() {
   renderMatchList();
 }
 
-// 外枠（検索欄・セレクト）は試合データが変わったときだけ作り直す。
+function matchFilterConditionCount() {
+  return [matchFilterResult, matchFilterPeriod, matchFilterType, matchFilterMatchType].filter(Boolean).length;
+}
+
+// 選択中の戦型/試合種別がデータ変更（削除など）で選択肢から消えた場合はフィルターを解除する
+// （選択肢に無い値が残ると、絞り込みバッジの表示と実際の絞り込み状態がズレるため）
+function pruneStaleMatchFilters() {
+  const typesPresent = new Set(matches.map(m => m.type).filter(t => t && t !== '不明'));
+  const matchTypesPresent = new Set(matches.map(m => m.matchType).filter(Boolean));
+  if (matchFilterType && !typesPresent.has(matchFilterType)) matchFilterType = '';
+  if (matchFilterMatchType && !matchTypesPresent.has(matchFilterMatchType)) matchFilterMatchType = '';
+}
+
+// 外枠（検索欄・絞り込みボタン）は試合データが変わったときだけ作り直す。
 // 入力のたびに作り直すと検索欄のフォーカス・キーボードが失われるため、
-// 入力/選択時は renderMatchList() だけを呼んで結果側だけ更新する。
+// 検索入力時は renderMatchList() だけを呼んで結果側だけ更新する。
 function renderMatchFilterShell() {
   const shell = document.getElementById('match-filter-shell');
   if (!shell) return;
@@ -1964,13 +2075,32 @@ function renderMatchFilterShell() {
     return;
   }
 
+  pruneStaleMatchFilters();
+  const activeCount = matchFilterConditionCount();
+
+  shell.innerHTML = `
+    <div style="padding: 0 20px 6px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div class="match-search-box">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="match-search" type="text" placeholder="相手名・チーム名で検索" autocomplete="off"
+            value="${esc(matchFilterQuery)}"
+            oninput="matchFilterQuery=this.value; renderMatchList();">
+        </div>
+        <button type="button" class="match-filter-btn${activeCount > 0 ? ' active' : ''}" aria-label="絞り込み条件" onclick="openMatchFilterSheet()">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+          ${activeCount > 0 ? `<span class="badge-dot">${activeCount}</span>` : ''}
+        </button>
+      </div>
+      <div id="match-filter-count" style="font-size:11.5px; color:#aaa; display:flex; justify-content:space-between; align-items:center; min-height:16px; padding-top:8px;"></div>
+    </div>
+  `;
+}
+
+// 絞り込みシート（勝敗・期間・戦型・試合種別）。選択肢は「決定」を押すまで確定しない。
+function openMatchFilterSheet() {
   const typesPresent = [...new Set(matches.map(m => m.type).filter(t => t && t !== '不明'))];
   const matchTypesPresent = [...new Set(matches.map(m => m.matchType).filter(Boolean))];
-
-  // 選択中の戦型/試合種別がデータ変更で選択肢から消えた場合はフィルターを解除する
-  // （選択肢に無い値が残ると、セレクトの表示と実際の絞り込み状態がズレるため）
-  if (matchFilterType && !typesPresent.includes(matchFilterType)) matchFilterType = '';
-  if (matchFilterMatchType && !matchTypesPresent.includes(matchFilterMatchType)) matchFilterMatchType = '';
 
   const typeOptionsHtml = typesPresent.map(t =>
     `<option value="${esc(t)}"${matchFilterType === t ? ' selected' : ''}>${esc(TYPE_SHORT_NAMES[t] || t)}</option>`
@@ -1979,45 +2109,76 @@ function renderMatchFilterShell() {
     `<option value="${esc(t)}"${matchFilterMatchType === t ? ' selected' : ''}>${esc(t)}</option>`
   ).join('');
 
-  shell.innerHTML = `
-    <div style="padding: 0 20px 8px;">
-      <input id="match-search" type="text" placeholder="相手名・チーム名で検索" autocomplete="off"
-        value="${esc(matchFilterQuery)}"
-        oninput="matchFilterQuery=this.value; renderMatchList();"
-        style="width:100%; border:1.5px solid #e8e8e8; border-radius:10px; padding:9px 14px; font-size:15px; font-family:inherit; outline:none; margin-bottom:8px; background:#fafafa; box-sizing:border-box;">
-      <div style="display:flex; gap:6px; margin-bottom:6px;">
-        <select class="picker-filter${matchFilterResult ? ' active' : ''}" aria-label="勝敗で絞り込み"
-          onchange="matchFilterResult=this.value; this.classList.toggle('active', !!matchFilterResult); renderMatchList();">
-          <option value="">勝敗すべて</option>
-          <option value="win"${matchFilterResult === 'win' ? ' selected' : ''}>勝ちのみ</option>
-          <option value="lose"${matchFilterResult === 'lose' ? ' selected' : ''}>負けのみ</option>
-        </select>
-        <select class="picker-filter${matchFilterPeriod ? ' active' : ''}" aria-label="期間で絞り込み"
-          onchange="matchFilterPeriod=this.value; this.classList.toggle('active', !!matchFilterPeriod); renderMatchList();">
-          <option value="">期間すべて</option>
-          <option value="1m"${matchFilterPeriod === '1m' ? ' selected' : ''}>直近1か月</option>
-          <option value="3m"${matchFilterPeriod === '3m' ? ' selected' : ''}>直近3か月</option>
-          <option value="year"${matchFilterPeriod === 'year' ? ' selected' : ''}>今年</option>
-        </select>
-      </div>
-      ${(typesPresent.length > 0 || matchTypesPresent.length > 0) ? `
-      <div style="display:flex; gap:6px; margin-bottom:6px;">
-        ${typesPresent.length > 0 ? `
-        <select class="picker-filter${matchFilterType ? ' active' : ''}" aria-label="戦型で絞り込み"
-          onchange="matchFilterType=this.value; this.classList.toggle('active', !!matchFilterType); renderMatchList();">
-          <option value="">戦型すべて</option>
-          ${typeOptionsHtml}
-        </select>` : ''}
-        ${matchTypesPresent.length > 0 ? `
-        <select class="picker-filter${matchFilterMatchType ? ' active' : ''}" aria-label="試合種別で絞り込み"
-          onchange="matchFilterMatchType=this.value; this.classList.toggle('active', !!matchFilterMatchType); renderMatchList();">
-          <option value="">試合種別すべて</option>
-          ${matchTypeOptionsHtml}
-        </select>` : ''}
-      </div>` : ''}
-      <div id="match-filter-count" style="font-size:11.5px; color:#aaa; display:flex; justify-content:space-between; align-items:center; min-height:16px;"></div>
+  document.getElementById('match-filter-modal-content').innerHTML = `
+    <div class="modal-header">
+      <div class="modal-title">試合を絞り込む</div>
+      <button class="modal-close" onclick="closeMatchFilterSheet()" aria-label="閉じる">×</button>
+    </div>
+    <div class="filter-sheet-field">
+      <label>勝敗</label>
+      <select id="mf-result">
+        <option value="">すべて</option>
+        <option value="win"${matchFilterResult === 'win' ? ' selected' : ''}>勝ちのみ</option>
+        <option value="lose"${matchFilterResult === 'lose' ? ' selected' : ''}>負けのみ</option>
+      </select>
+    </div>
+    <div class="filter-sheet-field">
+      <label>期間</label>
+      <select id="mf-period">
+        <option value="">すべて</option>
+        <option value="1m"${matchFilterPeriod === '1m' ? ' selected' : ''}>直近1か月</option>
+        <option value="3m"${matchFilterPeriod === '3m' ? ' selected' : ''}>直近3か月</option>
+        <option value="year"${matchFilterPeriod === 'year' ? ' selected' : ''}>今年</option>
+      </select>
+    </div>
+    ${typesPresent.length > 0 ? `
+    <div class="filter-sheet-field">
+      <label>戦型</label>
+      <select id="mf-type">
+        <option value="">すべて</option>
+        ${typeOptionsHtml}
+      </select>
+    </div>` : ''}
+    ${matchTypesPresent.length > 0 ? `
+    <div class="filter-sheet-field">
+      <label>試合種別</label>
+      <select id="mf-mtype">
+        <option value="">すべて</option>
+        ${matchTypeOptionsHtml}
+      </select>
+    </div>` : ''}
+    <div class="filter-sheet-actions">
+      <button type="button" class="btn ghost" onclick="resetMatchFilterSheet()">リセット</button>
+      <button type="button" class="btn primary" onclick="applyMatchFilterSheet()">この条件で見る</button>
     </div>
   `;
+  document.getElementById('match-filter-modal').classList.add('show');
+}
+
+function closeMatchFilterSheet() {
+  document.getElementById('match-filter-modal').classList.remove('show');
+}
+
+function applyMatchFilterSheet() {
+  matchFilterResult = document.getElementById('mf-result').value;
+  matchFilterPeriod = document.getElementById('mf-period').value;
+  const typeSel = document.getElementById('mf-type');
+  const mtypeSel = document.getElementById('mf-mtype');
+  matchFilterType = typeSel ? typeSel.value : '';
+  matchFilterMatchType = mtypeSel ? mtypeSel.value : '';
+  closeMatchFilterSheet();
+  renderMatchFilterShell();
+  renderMatchList();
+}
+
+function resetMatchFilterSheet() {
+  matchFilterResult = '';
+  matchFilterPeriod = '';
+  matchFilterType = '';
+  matchFilterMatchType = '';
+  closeMatchFilterSheet();
+  renderMatchFilterShell();
+  renderMatchList();
 }
 
 function renderMatchList() {
