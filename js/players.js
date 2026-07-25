@@ -9,7 +9,7 @@ export async function listPlayers() {
   return data;
 }
 
-export async function createPlayer({ name, grade, hand = null, play_type = null }) {
+export async function createPlayer({ name, grade, hand = null, play_type = null, team = null, pref = null, gender = null }) {
   if (!name) throw new Error('Name is required');
   // session から user を取る（getUser() が lock 競合でハングするケース回避）
   const { data: sessData } = await supabase.auth.getSession();
@@ -18,7 +18,7 @@ export async function createPlayer({ name, grade, hand = null, play_type = null 
 
   const { data, error } = await supabase
     .from('players')
-    .insert({ account_id: user.id, name, grade, hand, play_type })
+    .insert({ account_id: user.id, name, grade, hand, play_type, team, pref, gender })
     .select()
     .single();
   if (error) throw error;

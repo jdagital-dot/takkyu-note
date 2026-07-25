@@ -2196,6 +2196,13 @@ function renderMatchList() {
   // 自分側の表示情報（現在選択中の選手）
   const me = getCurrentPlayer();
   const myName = me?.name || 'あなた';
+  // チーム名（県）。相手側と同じ書式にして左右対称にする。
+  // 未設定の選手は行自体を出さず、従来と同じ「名前だけ」の表示を保つ。
+  const myTeamLine = (() => {
+    const team = me?.team ? esc(me.team) : '';
+    const pref = me?.pref ? `（${esc(me.pref)}）` : '';
+    return (team || pref) ? `<div class="tm">${team}${pref}</div>` : '';
+  })();
 
   filtered.forEach(m => {
     const card = document.createElement('div');
@@ -2206,6 +2213,7 @@ function renderMatchList() {
         <div class="board">
           <div class="board-side">
             <div class="nm">${esc(myName)}</div>
+            ${myTeamLine}
           </div>
           <div class="board-count">${buildMySetCount(m)}</div>
           ${buildSetLines(m.score) ? `<div class="board-sets">${buildSetLines(m.score)}</div>` : `<div class="board-sets-empty">${m.win ? '勝ち' : '負け'}</div>`}

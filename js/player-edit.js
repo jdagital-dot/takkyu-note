@@ -6,6 +6,7 @@ let editingId = null;
 let deleteArmed = false;
 let selHand = '';
 let selType = '';
+let selGender = '';
 
 const TYPE_OPTIONS = ['シェークハンド裏裏', 'ペンホルダー', 'フォア表', 'バック表', 'バック粒高', 'ペン粒', 'カットマン（粒高）', 'カットマン（表）', 'その他'];
 const TYPE_SHORT = {
@@ -20,6 +21,16 @@ const GRADE_OPTIONS = [
   ['13', '中1'], ['14', '中2'], ['15', '中3'],
   ['hs', '高校・一般'],
 ];
+// 記録フォームの「相手の県」と同じ並び・表記に揃える
+const PREF_OPTIONS = [
+  '北海道', '青森', '岩手', '宮城', '秋田', '山形', '福島',
+  '茨城', '栃木', '群馬', '埼玉', '千葉', '東京', '神奈川',
+  '新潟', '富山', '石川', '福井', '山梨', '長野', '岐阜',
+  '静岡', '愛知', '三重', '滋賀', '京都', '大阪', '兵庫',
+  '奈良', '和歌山', '鳥取', '島根', '岡山', '広島', '山口',
+  '徳島', '香川', '愛媛', '高知', '福岡', '佐賀', '長崎',
+  '熊本', '大分', '宮崎', '鹿児島', '沖縄',
+];
 
 const HAND_SVG_R = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0v5"/><path d="M14 10V4a2 2 0 0 0-4 0v6"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>';
 const HAND_SVG_L = HAND_SVG_R.replace('<svg ', '<svg style="transform:scaleX(-1);" ');
@@ -27,8 +38,10 @@ const HAND_SVG_L = HAND_SVG_R.replace('<svg ', '<svg style="transform:scaleX(-1)
 function render(player = null) {
   const isEdit = !!player;
   const grade = player?.grade || '';
+  const pref = player?.pref || '';
   selHand = player?.hand || '';
   selType = player?.play_type || '';
+  selGender = player?.gender || '';
 
   document.getElementById('player-edit-content').innerHTML = `
     <div class="modal-header" style="margin-bottom:14px;">
@@ -46,6 +59,25 @@ function render(player = null) {
           <option value="">選択...</option>
           ${GRADE_OPTIONS.map(([v, l]) => `<option value="${v}"${v === grade ? ' selected' : ''}>${l}</option>`).join('')}
         </select>
+      </div>
+      <div class="form-row">
+        <label for="player-edit-team">チーム名（任意）</label>
+        <input id="player-edit-team" type="text" value="${esc(player?.team || '')}" placeholder="例：J.STYLE">
+      </div>
+      <div class="form-row">
+        <label for="player-edit-pref">県（任意）</label>
+        <select id="player-edit-pref">
+          <option value="">選択...</option>
+          ${PREF_OPTIONS.map(p => `<option value="${esc(p)}"${p === pref ? ' selected' : ''}>${esc(p)}</option>`).join('')}
+        </select>
+      </div>
+
+      <div>
+        <div style="font-size:12px; font-weight:700; color:#aaa; letter-spacing:0.5px; margin-bottom:8px;">性別（任意）</div>
+        <div style="display:flex; gap:8px;">
+          <div class="type-btn pe-gender-btn ${selGender === '男子' ? 'selected' : ''}" data-gender="男子" onclick="playerEdit.pickGender(this,'男子')" style="flex:1;">男子</div>
+          <div class="type-btn pe-gender-btn ${selGender === '女子' ? 'selected' : ''}" data-gender="女子" onclick="playerEdit.pickGender(this,'女子')" style="flex:1;">女子</div>
+        </div>
       </div>
 
       <div>
@@ -91,6 +123,14 @@ export function pickType(el, type) {
   selType = type;
 }
 
+export function pickGender(el, gender) {
+  const wasSelected = el.classList.contains('selected');
+  document.querySelectorAll('.pe-gender-btn').forEach(b => b.classList.remove('selected'));
+  if (wasSelected) { selGender = ''; return; }
+  el.classList.add('selected');
+  selGender = gender;
+}
+
 function showMessage(text, isError = false) {
   const el = document.getElementById('player-edit-message');
   el.textContent = text;
@@ -122,15 +162,26 @@ export function close() {
 export async function handleSave() {
   const name = document.getElementById('player-edit-name').value.trim();
   const grade = document.getElementById('player-edit-grade').value;
+  const team = document.getElementById('player-edit-team').value.trim();
+  const pref = document.getElementById('player-edit-pref').value;
   if (!name) return showMessage('名前を入力してください', true);
   if (!grade) return showMessage('学年を選択してください', true);
   const wasEditing = !!editingId;
+  const profile = {
+    name,
+    grade,
+    hand: selHand || null,
+    play_type: selType || null,
+    team: team || null,
+    pref: pref || null,
+    gender: selGender || null,
+  };
 
   try {
     if (editingId) {
-      await players.updatePlayer(editingId, { name, grade, hand: selHand || null, play_type: selType || null });
+      await players.updatePlayer(editingId, profile);
     } else {
-      const created = await players.createPlayer({ name, grade, hand: selHand || null, play_type: selType || null });
+      const created = await players.createPlayer(profile);
       playerState.setCurrentPlayerId(created.id);
     }
     close();
@@ -172,4 +223,4 @@ export async function handleDelete() {
   }
 }
 
-window.playerEdit = { openAdd, openEdit, close, handleSave, handleDelete, pickHand, pickType };
+window.playerEdit = { openAdd, openEdit, close, handleSave, handleDelete, pickHand, pickType, pickGender };

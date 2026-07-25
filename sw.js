@@ -1,4 +1,4 @@
-const CACHE = 'pingpong-v31';
+const CACHE = 'pingpong-v32';
 const ASSETS = [
   '/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png',
   '/privacy', '/terms',

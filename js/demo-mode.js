@@ -6,8 +6,8 @@ import * as playerState from './player-state.js';
 import * as authUI from './auth-ui.js';
 
 const DEMO_PLAYERS = [
-  { id: 'demo-p1', name: '体験 太郎', grade: '14', hand: '右利き', play_type: 'シェークハンド裏裏' },
-  { id: 'demo-p2', name: '体験 花子', grade: '12', hand: '左利き', play_type: 'フォア表' },
+  { id: 'demo-p1', name: '体験 太郎', grade: '14', hand: '右利き', play_type: 'シェークハンド裏裏', team: '体験ジュニア', pref: '新潟', gender: '男子' },
+  { id: 'demo-p2', name: '体験 花子', grade: '12', hand: '左利き', play_type: 'フォア表', team: '体験ジュニア', pref: '新潟', gender: '女子' },
 ];
 
 function daysAgo(n) {
