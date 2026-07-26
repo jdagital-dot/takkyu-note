@@ -14,7 +14,7 @@ const TYPE_SHORT = {
   'カットマン（粒高）': 'カット（粒高）',
   'カットマン（表）': 'カット（表）',
 };
-const GRADE_OPTIONS = [
+export const GRADE_OPTIONS = [
   ['u10', '小学生以下'],
   ['7', '小1'], ['8', '小2'], ['9', '小3'],
   ['10', '小4'], ['11', '小5'], ['12', '小6'],
@@ -187,6 +187,8 @@ export async function handleSave() {
     close();
     if (window.playerUI) await window.playerUI.refreshSwitcher();
     if (typeof window.renderMatches === 'function') window.renderMatches();
+    // 設定画面を開いたまま編集した場合は選手一覧も更新する
+    if (window.settingsUI) window.settingsUI.refresh();
     if (typeof window.showToast === 'function') window.showToast(wasEditing ? '✓ 選手を更新しました' : '✓ 選手を登録しました');
   } catch (e) {
     showMessage(e.message || '保存に失敗しました', true);
@@ -217,6 +219,8 @@ export async function handleDelete() {
     close();
     if (window.playerUI) await window.playerUI.refreshSwitcher();
     if (typeof window.renderMatches === 'function') window.renderMatches();
+    // 設定画面を開いたまま編集した場合は選手一覧も更新する
+    if (window.settingsUI) window.settingsUI.refresh();
     if (typeof window.showToast === 'function') window.showToast('選手を削除しました');
   } catch (e) {
     showMessage(e.message || '削除に失敗しました', true);

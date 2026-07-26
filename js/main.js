@@ -12,6 +12,7 @@ import * as matchesCache from './matches-cache.js';
 import * as opponents from './opponents.js';
 import * as opponentsCache from './opponents-cache.js';
 import * as demoMode from './demo-mode.js';
+import * as settingsUI from './settings-ui.js';
 
 window.supabase = supabase;
 window.auth = auth;
@@ -177,6 +178,17 @@ const matchesService = {
     await matches.deleteMatch(id);
     const list = matchesCache.load(pid).filter(x => x.id !== id);
     matchesCache.save(pid, list);
+  },
+  // CSVエクスポート用に全選手分をまとめて取得する。
+  // 他のメソッドは現在の選手専用なので、横断取得はここだけが担う。
+  async getAllForExport() {
+    const list = playerUI.getPlayers();
+    const out = [];
+    for (const p of list) {
+      const rows = await matches.listByPlayer(p.id);
+      out.push({ player: p, matches: rows.map(matches.rowToMatch) });
+    }
+    return out;
   },
 };
 

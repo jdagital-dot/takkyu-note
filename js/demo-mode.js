@@ -93,6 +93,13 @@ const demoMatchesService = {
     const pid = playerState.getCurrentPlayerId();
     matchesByPlayer[pid] = (matchesByPlayer[pid] || []).filter(x => x.id !== id);
   },
+  // デモでもCSVエクスポートを動かす（記録を持ち出せる体験は登録の動機になる）
+  async getAllForExport() {
+    return DEMO_PLAYERS.map(p => ({
+      player: { ...p },
+      matches: (matchesByPlayer[p.id] || []).slice(),
+    }));
+  },
 };
 
 const demoOpponentsService = {
@@ -136,14 +143,9 @@ export function enter() {
     window.playerEdit = { ...window.playerEdit, openAdd: guard, openEdit: guard };
   }
 
-  // バナー表示とヘッダーのボタン差し替え
+  // バナー表示。デモの終了は設定画面（歯車）から行う。
   const banner = document.getElementById('demo-banner');
   if (banner) banner.style.display = 'flex';
-  const logoutBtn = document.getElementById('logout-btn');
-  if (logoutBtn) {
-    logoutBtn.textContent = 'デモを終了';
-    logoutBtn.onclick = exit;
-  }
 
   authUI.hideAuthScreen();
   if (typeof window.renderMatches === 'function') window.renderMatches();

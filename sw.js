@@ -1,4 +1,4 @@
-const CACHE = 'pingpong-v32';
+const CACHE = 'pingpong-v33';
 const ASSETS = [
   '/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png',
   '/privacy', '/terms',
@@ -6,6 +6,7 @@ const ASSETS = [
   '/js/account.js', '/js/players.js', '/js/player-state.js', '/js/player-ui.js',
   '/js/player-edit.js', '/js/onboarding.js', '/js/matches.js', '/js/matches-cache.js',
   '/js/opponents.js', '/js/opponents-cache.js', '/js/escape.js', '/js/demo-mode.js',
+  '/js/settings-ui.js',
 ];
 
 self.addEventListener('install', e => {
