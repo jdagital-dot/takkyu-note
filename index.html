@@ -1115,6 +1115,13 @@
           </div>
         </div>
         <div class="form-row">
+          <label>相手の性別（任意）</label>
+          <div style="display:flex; gap:8px;">
+            <div class="type-btn gender-btn" data-gender="男子" onclick="selectGender(this,'男子')" style="flex:1;">男子</div>
+            <div class="type-btn gender-btn" data-gender="女子" onclick="selectGender(this,'女子')" style="flex:1;">女子</div>
+          </div>
+        </div>
+        <div class="form-row">
           <label for="match-type">試合種別</label>
           <select id="match-type">
             <option>公式戦（個人）</option>
@@ -1352,6 +1359,7 @@ let matchFilterPanelOpen = false;
 
 let selectedType = '';
 let selectedHand = '';
+let selectedGender = '';
 let selectedTags = [];
 let editingMatchId = null;
 let setCount = 0;
@@ -1383,6 +1391,7 @@ function getRecentOpponents() {
       pref: m.pref === '不明' ? '' : m.pref,
       hand: m.hand || '',
       type: m.type === '不明' ? '' : m.type,
+      gender: m.gender || '',
     }));
 }
 
@@ -1398,9 +1407,15 @@ function fillOpponent(p) {
     b.classList.toggle('selected', b.dataset.hand === selectedHand);
   });
 
+  // 性別
+  selectedGender = p.gender || '';
+  document.querySelectorAll('.gender-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.gender === selectedGender);
+  });
+
   // 戦型
   selectedType = p.type || '';
-  document.querySelectorAll('.type-btn:not(.hand-btn)').forEach(b => {
+  document.querySelectorAll('.type-btn:not(.hand-btn):not(.gender-btn)').forEach(b => {
     b.classList.toggle('selected', b.dataset.type === selectedType);
   });
 
@@ -1706,6 +1721,7 @@ function renderAbForm() {
   const isEdit = !!p;
   abSelectedHand = p?.hand || '';
   abSelectedType = p?.type || '';
+  abSelectedGender = p?.gender || '';
 
   document.getElementById('ab-content').innerHTML = `
     <div class="modal-header" style="margin-bottom:14px;">
@@ -1739,6 +1755,14 @@ function renderAbForm() {
       <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
         <label for="ab-pref" style="font-size:13px; font-weight:600; color:#444;">県</label>
         <select id="ab-pref">${prefOptions(p?.pref || '')}</select>
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <div style="font-size:12px; font-weight:700; color:#aaa; letter-spacing:0.5px; margin-bottom:8px;">性別</div>
+      <div style="display:flex; gap:8px;">
+        <div class="type-btn ab-gender-btn ${abSelectedGender === '男子' ? 'selected' : ''}" data-gender="男子" onclick="selectAbGender(this,'男子')" style="flex:1;">男子</div>
+        <div class="type-btn ab-gender-btn ${abSelectedGender === '女子' ? 'selected' : ''}" data-gender="女子" onclick="selectAbGender(this,'女子')" style="flex:1;">女子</div>
       </div>
     </div>
 
@@ -1804,7 +1828,7 @@ async function saveAbForm() {
   const age  = gradeValToAge(document.getElementById('ab-grade').value);
   const pref = document.getElementById('ab-pref').value;
   if (!name) return showAbFormMessage('選手名を入力してください', true);
-  const fields = { name, team, age, pref, hand: abSelectedHand, type: abSelectedType };
+  const fields = { name, team, age, pref, hand: abSelectedHand, type: abSelectedType, gender: abSelectedGender };
   try {
     if (abEditingId) {
       await window.opponentsService.update(abEditingId, fields);
@@ -1818,6 +1842,7 @@ async function saveAbForm() {
   }
   abSelectedHand = '';
   abSelectedType = '';
+  abSelectedGender = '';
   updateTeamSuggestions();
   showToast(abEditingId ? '✓ 選手を更新しました' : '✓ 選手を登録しました');
   backToAbList();
@@ -2550,8 +2575,13 @@ function startEditMatch(id) {
     b.classList.toggle('selected', b.dataset.hand === selectedHand);
   });
 
+  selectedGender = m.gender || '';
+  document.querySelectorAll('.gender-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.gender === selectedGender);
+  });
+
   selectedType = m.type || '';
-  document.querySelectorAll('.type-btn:not(.hand-btn)').forEach(b => {
+  document.querySelectorAll('.type-btn:not(.hand-btn):not(.gender-btn)').forEach(b => {
     b.classList.toggle('selected', b.dataset.type === selectedType);
   });
 
@@ -2591,6 +2621,16 @@ function showScreen(name) {
 
 let abSelectedHand = '';
 let abSelectedType = '';
+let abSelectedGender = '';
+
+// タップで選択、同じボタンをもう一度タップで解除（未設定に戻せる）
+function selectAbGender(el, gender) {
+  const wasSelected = el.classList.contains('selected');
+  document.querySelectorAll('.ab-gender-btn').forEach(b => b.classList.remove('selected'));
+  if (wasSelected) { abSelectedGender = ''; return; }
+  el.classList.add('selected');
+  abSelectedGender = gender;
+}
 
 // タップで選択、同じボタンをもう一度タップで解除（未設定に戻せる）
 function selectAbHand(el, hand) {
@@ -2613,6 +2653,15 @@ function selectHand(el, hand) {
   document.querySelectorAll('.hand-btn').forEach(b => b.classList.remove('selected'));
   el.classList.add('selected');
   selectedHand = hand;
+}
+
+// タップで選択、同じボタンをもう一度タップで解除（未設定に戻せる）
+function selectGender(el, gender) {
+  const wasSelected = el.classList.contains('selected');
+  document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('selected'));
+  if (wasSelected) { selectedGender = ''; return; }
+  el.classList.add('selected');
+  selectedGender = gender;
 }
 
 function selectType(el, type) {
@@ -2702,6 +2751,7 @@ async function submitRecord() {
     pref: document.getElementById('opponent-pref').value || '不明',
     hand: selectedHand || '',
     type: selectedType || '不明',
+    gender: selectedGender || '',
     matchType: document.getElementById('match-type').value,
     score: scoreText || '—',
     win: myWins > oppWins,
@@ -2738,6 +2788,7 @@ async function submitRecord() {
   // リセット
   document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
   selectedHand = '';
+  selectedGender = '';
   document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('selected'));
   document.getElementById('team-name').value = '';
   document.getElementById('opponent-name').value = '';
@@ -2805,7 +2856,8 @@ async function addPendingToAb() {
         age: _pendingMatchForAb.age,
         pref: _pendingMatchForAb.pref,
         hand: _pendingMatchForAb.hand,
-        type: _pendingMatchForAb.type
+        type: _pendingMatchForAb.type,
+        gender: _pendingMatchForAb.gender
       });
       addressBook = window.opponentsService.getAll();
       updateTeamSuggestions();

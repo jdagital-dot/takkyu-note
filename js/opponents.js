@@ -22,6 +22,7 @@ export async function createOpponent(accountId, opp) {
     pref: opp.pref || null,
     hand: opp.hand || null,
     type: opp.type || null,
+    gender: opp.gender || null,
   };
   const { data, error } = await supabase
     .from('opponents')
@@ -40,6 +41,7 @@ export async function updateOpponent(id, opp) {
     pref: opp.pref || null,
     hand: opp.hand || null,
     type: opp.type || null,
+    gender: opp.gender || null,
   };
   const { data, error } = await supabase
     .from('opponents')
@@ -68,5 +70,6 @@ export function rowToOpponent(row) {
     pref: row.pref || '',
     hand: row.hand || '',
     type: row.type || '',
+    gender: row.gender || '',
   };
 }
