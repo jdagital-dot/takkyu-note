@@ -660,6 +660,12 @@
   }
   .age-box .pct { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
   .age-box .cat { font-size: 11px; color: #888; }
+  /* 性別は2区分なので2列。ボックスの見た目は age-box を流用する */
+  .gender-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
   .pct-high { color: #2e7d32; }
   .pct-mid { color: #e65100; }
   .pct-low { color: #c62828; }
@@ -1234,6 +1240,13 @@
         <div class="analysis-card">
           <h3>年齢カテゴリ別勝率</h3>
           <div class="age-grid" id="age-grid"></div>
+        </div>
+
+        <!-- 性別が1件も記録されていないときはカードごと隠す（空の枠を出さない） -->
+        <div class="analysis-card" id="gender-card" style="display:none;">
+          <h3>性別別勝率</h3>
+          <div class="gender-grid" id="gender-grid"></div>
+          <div id="gender-note" style="font-size:11px; color:#aaa; margin-top:10px; line-height:1.6;"></div>
         </div>
 
         <div class="analysis-card">
@@ -2394,6 +2407,34 @@ function renderAnalysis() {
     const r = Math.round(s.w / s.t * 100);
     return `<div class="age-box"><div class="pct ${ratePctClass(r)}">${r}%</div><div class="cat">${cat}・${s.t}試合</div></div>`;
   }).join('');
+
+  // 性別別勝率。性別が未設定の試合は集計から除外する
+  // （「未設定 0%」のような無意味な行を出さないため）。
+  // 1件も性別が入っていない場合はカードごと隠す。
+  const genders = { '男子': { t: 0, w: 0 }, '女子': { t: 0, w: 0 } };
+  let genderUnset = 0;
+  matches.forEach(m => {
+    if (genders[m.gender]) {
+      genders[m.gender].t++;
+      if (m.win) genders[m.gender].w++;
+    } else {
+      genderUnset++;
+    }
+  });
+  const genderTotal = genders['男子'].t + genders['女子'].t;
+  const genderCard = document.getElementById('gender-card');
+  genderCard.style.display = genderTotal > 0 ? 'block' : 'none';
+  if (genderTotal > 0) {
+    document.getElementById('gender-grid').innerHTML = Object.entries(genders).map(([g, s]) => {
+      if (s.t === 0) {
+        return `<div class="age-box"><div class="pct" style="color:#ccc;">—</div><div class="cat">${g}</div></div>`;
+      }
+      const r = Math.round(s.w / s.t * 100);
+      return `<div class="age-box"><div class="pct ${ratePctClass(r)}">${r}%</div><div class="cat">${g}・${s.t}試合</div></div>`;
+    }).join('');
+    document.getElementById('gender-note').textContent =
+      genderUnset > 0 ? `性別が未設定の${genderUnset}試合は含みません。記録画面で入力すると反映されます。` : '';
+  }
 
   // 傾向・強み・課題（勝ち/負け試合の頻出タグ。2回以上、勝敗どちらで多いかで振り分け）
   const winTags = {}, loseTags = {};
