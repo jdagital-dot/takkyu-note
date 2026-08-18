@@ -282,6 +282,25 @@
   }
   .score-set.set-done-win { border-color: #4CAF50; background: #f1faf1; }
   .score-set.set-done-lose { border-color: #F44336; background: #fff5f5; }
+  /* 入力済みのセットだけに出る取り消しボタン（0まで戻す手間をなくす） */
+  .set-clear-btn {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: none;
+    background: #ececef;
+    color: #888;
+    font-size: 14px;
+    line-height: 1;
+    font-family: inherit;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .set-clear-btn:active { background: #ddd; }
   .score-set-label {
     font-size: 11px;
     font-weight: 700;
@@ -1678,6 +1697,7 @@ let abMode = 'list';       // 'list' | 'form'
 let abEditingId = null;    // 編集対象の opponent id（null = 新規）
 let abQuery = '';
 let abDeleteArmed = false;
+let abComposing = false;   // IME変換中は一覧の絞り込みを保留する
 
 function renderAddressBook() {
   if (abMode === 'form') {
@@ -1687,14 +1707,45 @@ function renderAddressBook() {
   }
 }
 
+// 外枠（検索欄）は開いたときに一度だけ作る。
+// 入力のたびに作り直すと input 要素が破棄され、日本語IMEの変換が中断されて
+// 「母音だけ入力できて子音は英字のまま確定する」不具合になるため、
+// 入力時は renderAbResults() で一覧だけを差し替える。
 function renderAbList() {
+  document.getElementById('ab-content').innerHTML = `
+    <div class="modal-header" style="margin-bottom:10px;">
+      <div>
+        <div class="modal-title">アドレス帳</div>
+        <div class="modal-subtitle">${addressBook.length}人 ・ タップで記録フォームに反映</div>
+      </div>
+      <button class="modal-close" onclick="closeAbModal()" aria-label="閉じる">×</button>
+    </div>
+
+    <div style="display:flex; gap:8px; margin-bottom:12px;">
+      <input id="ab-search" type="text" placeholder="名前・チームで検索" autocomplete="off"
+        value="${esc(abQuery)}"
+        oncompositionstart="abComposing = true;"
+        oncompositionend="abComposing = false; abQuery = this.value; renderAbResults();"
+        oninput="abQuery = this.value; if (!abComposing) renderAbResults();"
+        style="flex:1; border:1.5px solid #e8e8e8; border-radius:10px; padding:10px 14px; font-size:16px; font-family:inherit; outline:none; background:#fafafa;">
+      <button onclick="openAbForm()" style="flex-shrink:0; background:linear-gradient(135deg,#e53935,#c62828); color:#fff; border:none; border-radius:10px; padding:0 16px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:0 2px 10px rgba(229,57,53,0.3);">＋ 選手を登録</button>
+    </div>
+
+    <div id="ab-results"></div>
+  `;
+  renderAbResults();
+}
+
+function renderAbResults() {
+  const box = document.getElementById('ab-results');
+  if (!box) return;
   const q = abQuery.trim();
   const filtered = addressBook
     .filter(p => !q || (p.name && p.name.includes(q)) || (p.team && p.team.includes(q)))
     .slice()
     .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
 
-  const listHtml = filtered.length === 0
+  box.innerHTML = filtered.length === 0
     ? `<div class="picker-empty">${q ? '該当する選手が見つかりません' : 'まだ選手が登録されていません。<br>「＋ 選手を登録」から追加できます。'}</div>`
     : filtered.map(p => {
         const i = addressBook.indexOf(p);
@@ -1708,25 +1759,6 @@ function renderAbList() {
           <button onclick="event.stopPropagation(); openAbForm('${p.id}')" aria-label="${esc(p.name)}を編集" style="border:none; background:none; color:#999; padding:10px 12px; font-size:15px; cursor:pointer; font-family:inherit; flex-shrink:0;">✎</button>
         </div>`;
       }).join('');
-
-  document.getElementById('ab-content').innerHTML = `
-    <div class="modal-header" style="margin-bottom:10px;">
-      <div>
-        <div class="modal-title">アドレス帳</div>
-        <div class="modal-subtitle">${addressBook.length}人 ・ タップで記録フォームに反映</div>
-      </div>
-      <button class="modal-close" onclick="closeAbModal()" aria-label="閉じる">×</button>
-    </div>
-
-    <div style="display:flex; gap:8px; margin-bottom:12px;">
-      <input id="ab-search" type="text" placeholder="名前・チームで検索" autocomplete="off"
-        value="${esc(abQuery)}" oninput="abQuery=this.value; renderAbList(); const el=document.getElementById('ab-search'); el.focus(); el.setSelectionRange(el.value.length, el.value.length);"
-        style="flex:1; border:1.5px solid #e8e8e8; border-radius:10px; padding:10px 14px; font-size:16px; font-family:inherit; outline:none; background:#fafafa;">
-      <button onclick="openAbForm()" style="flex-shrink:0; background:linear-gradient(135deg,#e53935,#c62828); color:#fff; border:none; border-radius:10px; padding:0 16px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:0 2px 10px rgba(229,57,53,0.3);">＋ 選手を登録</button>
-    </div>
-
-    ${listHtml}
-  `;
 }
 
 function renderAbForm() {
@@ -1927,6 +1959,11 @@ function renderSetRow(idx) {
         ${done === 'win' ? '勝ち' : done === 'lose' ? '負け' : '—'}
       </span>`;
 
+  // 何か入力されているセットにだけ取り消しボタンを出す（空のセットには不要）
+  const clearBtnHtml = (s.my > 0 || s.opp > 0)
+    ? `<button type="button" class="set-clear-btn" onclick="event.stopPropagation(); clearSet(${idx});" aria-label="第${idx+1}セットのスコアを取り消す">×</button>`
+    : '';
+
   let html;
   if (s.collapsed && done) {
     // コンパクト表示（タップで再び開いて修正できる）
@@ -1936,6 +1973,7 @@ function renderSetRow(idx) {
       <span class="score-set-result">${s.my} − ${s.opp}</span>
       ${badgeHtml}
       <span class="edit-mark" aria-hidden="true">✎</span>
+      ${clearBtnHtml}
     </div>`;
   } else {
     html = `
@@ -1953,6 +1991,7 @@ function renderSetRow(idx) {
         </div>
       </div>
       ${badgeHtml}
+      ${clearBtnHtml}
     </div>`;
   }
 
@@ -1965,6 +2004,16 @@ function renderSetRow(idx) {
     setWheelPosition(idx, 'my', s.my, false);
     setWheelPosition(idx, 'opp', s.opp, false);
   }
+}
+
+// セットのスコアを一発で取り消す（0まで手で戻さなくて済むように）
+function clearSet(idx) {
+  const s = setScores[idx];
+  if (!s) return;
+  s.my = 0;
+  s.opp = 0;
+  s.collapsed = false;
+  renderSetRow(idx);
 }
 
 // コンパクト表示のセットをタップで開く
