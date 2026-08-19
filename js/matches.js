@@ -26,6 +26,9 @@ export async function createMatch(playerId, match) {
     opponent_gender: match.gender || null,
     match_type: match.matchType || null,
     score: match.score || null,
+    // かんたん記録（ゲームカウントのみ）。詳細記録では null になる
+    games_won: match.gamesWon ?? null,
+    games_lost: match.gamesLost ?? null,
     win: match.win,
     tags: match.tags || [],
     memo: match.memo || null,
@@ -50,6 +53,8 @@ export async function updateMatch(id, updates) {
     opponent_gender: updates.gender || null,
     match_type: updates.matchType || null,
     score: updates.score || null,
+    games_won: updates.gamesWon ?? null,
+    games_lost: updates.gamesLost ?? null,
     win: updates.win,
     tags: updates.tags || [],
     memo: updates.memo || null,
@@ -87,6 +92,9 @@ export function rowToMatch(row) {
     gender: row.opponent_gender || '',
     matchType: row.match_type || '',
     score: row.score || '—',
+    // null のままにする（0 と「未設定」を区別する必要があるため ?? は使わない）
+    gamesWon: row.games_won ?? null,
+    gamesLost: row.games_lost ?? null,
     win: !!row.win,
     tags: Array.isArray(row.tags) ? row.tags : [],
     memo: row.memo || '',

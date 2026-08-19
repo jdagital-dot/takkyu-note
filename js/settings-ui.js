@@ -181,8 +181,21 @@ export function refresh() {
 
 const CSV_HEADERS = [
   '選手名', '試合日', '相手名', '相手チーム', '相手学年', '相手県', '相手性別',
-  '利き手', '戦型', '試合種別', 'スコア', '勝敗', 'タグ', 'メモ',
+  '利き手', '戦型', '試合種別', 'スコア', 'ゲームカウント', '勝敗', 'タグ', 'メモ',
 ];
+
+// ゲームカウントは詳細記録でも点数から逆算し、両方式で必ず埋まるようにする
+function gameCountText(m) {
+  if (m.gamesWon != null && m.gamesLost != null) return `${m.gamesWon}-${m.gamesLost}`;
+  if (!m.score || m.score === '—') return '';
+  let mine = 0, theirs = 0;
+  m.score.split(',').forEach(part => {
+    const [a, b] = part.trim().split('-').map(n => parseInt(n, 10));
+    if (isNaN(a) || isNaN(b)) return;
+    if (a > b) mine++; else if (b > a) theirs++;
+  });
+  return (mine || theirs) ? `${mine}-${theirs}` : '';
+}
 
 // RFC 4180: カンマ・改行・ダブルクォートを含む値は囲んで内部のクォートを2重化する
 function csvCell(v) {
@@ -230,6 +243,7 @@ export async function exportCsv() {
         m.type && m.type !== '不明' ? m.type : '',
         m.matchType || '',
         m.score && m.score !== '—' ? m.score : '',
+        gameCountText(m),
         m.win ? '勝ち' : '負け',
         Array.isArray(m.tags) ? m.tags.join(' / ') : '',
         m.memo || '',

@@ -30,6 +30,19 @@ function dm(days, opponent, team, age, pref, hand, type, matchType, score, win, 
   };
 }
 
+// ゲームカウントのみのかんたん記録（練習でポイントまで覚えていない想定）。
+// score を持たず games だけを持つ試合をデモにも入れて、カードの見え方を確認できるようにする。
+function dmSimple(days, opponent, team, age, pref, hand, type, matchType, gw, gl, tags, memo) {
+  const date = daysAgo(days);
+  return {
+    id: `demo-m-${++seq}`,
+    date: toJa(date),
+    team, opponent, age, pref, hand, type, matchType,
+    score: '—', gamesWon: gw, gamesLost: gl, win: gw > gl, tags, memo,
+    _remoteRow: { date },
+  };
+}
+
 // 相手の性別を付与する。基本は同性対戦で、練習試合だけ異性を混ぜて
 // 性別別の集計が1行に偏らないようにする（mixedIndexes で指定）。
 function withGender(list, gender, mixedIndexes = []) {
@@ -50,6 +63,7 @@ function buildDemoMatches() {
       dm(24, '渡辺 陸',  '青葉中学校',   14, '東京', '右利き', 'ペン粒',            'オープン大会',   '11-6, 12-10, 11-8',      true,  ['3球目', '回転読み'],     '粒の変化を読めるようになってきた。'),
       dm(31, '山本 樹',  '東港ジュニア', 14, '東京', '左利き', 'フォア表',          '公式戦（団体）', '11-9, 13-11, 11-7',      true,  ['サーブ', '3球目'],       'チームも3-1で勝利！'),
       dm(38, '佐藤 健',  '青葉中学校',   14, '東京', '右利き', 'シェークハンド裏裏', '練習試合',      '8-11, 11-9, 9-11, 11-13', false, ['レシーブ'],            'レシーブから崩された。ツッツキの質を上げたい。'),
+      dmSimple(6, '練習 相手', '東港ジュニア', 14, '東京', '右利き', 'シェークハンド裏裏', '練習試合', 3, 2, ['ラリー'], 'ゲーム練習。点数は覚えていないがラリーで押し切れた。'),
     ], '男子', [3]),
     'demo-p2': withGender([
       dm(5,  '中村 芽依', '桜台ジュニア', 12, '東京', '右利き', 'シェークハンド裏裏', '公式戦（個人）', '11-7, 11-9, 11-5', true,  ['サーブ'],            '初めての公式戦勝利！'),

@@ -282,6 +282,49 @@
   }
   .score-set.set-done-win { border-color: #4CAF50; background: #f1faf1; }
   .score-set.set-done-lose { border-color: #F44336; background: #fff5f5; }
+  /* かんたん入力（ゲームカウント）。0〜4の狭い範囲なのでタップで選ぶ */
+  .game-count-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .game-count-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #999;
+    width: 36px;
+    flex-shrink: 0;
+  }
+  .game-count-btns { display: flex; gap: 6px; flex: 1; }
+  .game-count-btn {
+    flex: 1;
+    padding: 12px 0;
+    border: 1.5px solid #e8e8e8;
+    border-radius: 10px;
+    background: #fafafa;
+    color: #555;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    text-align: center;
+  }
+  .game-count-btn.selected {
+    border-color: #e53935;
+    background: #fff5f5;
+    color: #e53935;
+  }
+  .game-count-hint {
+    font-size: 12px;
+    line-height: 1.6;
+    color: #aaa;
+    min-height: 18px;
+    padding-top: 2px;
+  }
+  .game-count-hint.warn { color: #c62828; font-weight: 600; }
+
   /* 入力済みのセットだけに出る取り消しボタン（0まで戻す手間をなくす） */
   .set-clear-btn {
     flex-shrink: 0;
@@ -1188,8 +1231,27 @@
 
       <div class="form-section">
         <div class="form-section-title">スコア</div>
-        <div class="score-inputs" id="score-inputs"></div>
-        <button class="add-set-btn" onclick="addSet()" style="margin-top: 10px;">＋ セット追加</button>
+        <div style="display:flex; gap:8px; margin-bottom:14px;">
+          <div class="type-btn score-mode-btn selected" data-mode="detail" onclick="setScoreMode('detail')" style="flex:1;">詳細（ポイント）</div>
+          <div class="type-btn score-mode-btn" data-mode="simple" onclick="setScoreMode('simple')" style="flex:1;">かんたん（カウント）</div>
+        </div>
+
+        <div id="score-detail-area">
+          <div class="score-inputs" id="score-inputs"></div>
+          <button class="add-set-btn" onclick="addSet()" style="margin-top: 10px;">＋ セット追加</button>
+        </div>
+
+        <div id="score-simple-area" style="display:none;">
+          <div class="game-count-row">
+            <span class="game-count-label">自分</span>
+            <div class="game-count-btns" id="game-count-my"></div>
+          </div>
+          <div class="game-count-row">
+            <span class="game-count-label">相手</span>
+            <div class="game-count-btns" id="game-count-opp"></div>
+          </div>
+          <div id="game-count-hint" class="game-count-hint"></div>
+        </div>
       </div>
 
       <div class="form-section">
@@ -2006,6 +2068,66 @@ function renderSetRow(idx) {
   }
 }
 
+/* ===== スコアの入力方法（詳細／かんたん） ===== */
+const GAME_COUNT_MAX = 4;          // 7ゲームマッチでも4本先取が上限
+const SCORE_MODE_KEY = 'pingpong_score_mode';
+let scoreMode = 'detail';          // 'detail' | 'simple'
+let gameCount = { my: 0, opp: 0 };
+
+// silent=true のときは保存しない（編集で開いたときに好みを上書きしないため）
+function setScoreMode(mode, silent = false) {
+  scoreMode = mode === 'simple' ? 'simple' : 'detail';
+  document.querySelectorAll('.score-mode-btn').forEach(b =>
+    b.classList.toggle('selected', b.dataset.mode === scoreMode));
+  document.getElementById('score-detail-area').style.display = scoreMode === 'detail' ? '' : 'none';
+  document.getElementById('score-simple-area').style.display = scoreMode === 'simple' ? '' : 'none';
+  if (!silent) {
+    try { localStorage.setItem(SCORE_MODE_KEY, scoreMode); } catch {}
+  }
+  if (scoreMode === 'simple') renderGameCount();
+  else syncAllWheels();
+}
+
+function applySavedScoreMode() {
+  let saved = 'detail';
+  try { saved = localStorage.getItem(SCORE_MODE_KEY) || 'detail'; } catch {}
+  setScoreMode(saved, true);
+}
+
+function renderGameCount() {
+  ['my', 'opp'].forEach(side => {
+    const box = document.getElementById('game-count-' + side);
+    if (!box) return;
+    let html = '';
+    for (let v = 0; v <= GAME_COUNT_MAX; v++) {
+      html += `<button type="button" class="game-count-btn${gameCount[side] === v ? ' selected' : ''}" onclick="pickGameCount('${side}',${v})" aria-label="${side === 'my' ? '自分' : '相手'}のゲームカウント ${v}">${v}</button>`;
+    }
+    box.innerHTML = html;
+  });
+  updateGameCountHint();
+}
+
+function pickGameCount(side, v) {
+  gameCount[side] = v;
+  renderGameCount();
+}
+
+function updateGameCountHint() {
+  const el = document.getElementById('game-count-hint');
+  if (!el) return;
+  if (gameCount.my === gameCount.opp) {
+    el.className = 'game-count-hint warn';
+    el.textContent = gameCount.my === 0
+      ? 'ゲームカウントを選んでください。'
+      : '同じ数だと、どちらが勝ったか決まりません。';
+  } else {
+    el.className = 'game-count-hint';
+    el.textContent = gameCount.my > gameCount.opp
+      ? `勝ち（${gameCount.my} − ${gameCount.opp}）として記録します。`
+      : `負け（${gameCount.my} − ${gameCount.opp}）として記録します。`;
+  }
+}
+
 // セットのスコアを一発で取り消す（0まで手で戻さなくて済むように）
 function clearSet(idx) {
   const s = setScores[idx];
@@ -2354,7 +2476,7 @@ function renderMatchList() {
             ${myTeamLine}
           </div>
           <div class="board-count">${buildMySetCount(m)}</div>
-          ${buildSetLines(m.score) ? `<div class="board-sets">${buildSetLines(m.score)}</div>` : `<div class="board-sets-empty">${m.win ? '勝ち' : '負け'}</div>`}
+          ${buildBoardCenter(m)}
           <div class="board-count">${buildOppSetCount(m)}</div>
           <div class="board-side right">
             ${m.opponent
@@ -2559,20 +2681,34 @@ function parseSets(scoreText) {
   }).filter(Boolean);
 }
 
-// セットカウント（取得セット数）を左右別々に返す
+// セットカウント（取得セット数）を左右別々に返す。
+// hasCount = カウントを出せるか / hasSetLines = 各セットの点数があるか。
+// かんたん記録は「カウントはあるが点数は無い」ため、この2つを区別する必要がある。
 function countSets(m) {
+  if (m.gamesWon != null && m.gamesLost != null) {
+    return { mine: m.gamesWon, theirs: m.gamesLost, hasCount: true, hasSetLines: false };
+  }
   const sets = parseSets(m.score);
   let mine = 0, theirs = 0;
   sets.forEach(s => { if (s.my > s.opp) mine++; else if (s.opp > s.my) theirs++; });
-  return { mine, theirs, hasScore: sets.length > 0 };
+  return { mine, theirs, hasCount: sets.length > 0, hasSetLines: sets.length > 0 };
 }
 function buildMySetCount(m) {
   const c = countSets(m);
-  return c.hasScore ? String(c.mine) : (m.win ? '○' : '');
+  return c.hasCount ? String(c.mine) : (m.win ? '○' : '');
 }
 function buildOppSetCount(m) {
   const c = countSets(m);
-  return c.hasScore ? String(c.theirs) : (m.win ? '' : '○');
+  return c.hasCount ? String(c.theirs) : (m.win ? '' : '○');
+}
+
+// カード中央の表示。点数があれば縦積み、かんたん記録は「−」だけ、
+// どちらも無い過去の記録は従来どおり勝ち／負けを出す。
+function buildBoardCenter(m) {
+  const c = countSets(m);
+  if (c.hasSetLines) return `<div class="board-sets">${buildSetLines(m.score)}</div>`;
+  if (c.hasCount) return `<div class="board-sets-empty">−</div>`;
+  return `<div class="board-sets-empty">${m.win ? '勝ち' : '負け'}</div>`;
 }
 
 // 各セットの点数を縦積み行に
@@ -2688,6 +2824,16 @@ function startEditMatch(id) {
     parsed.forEach(s => { setScores.push(s); setCount++; renderSetRow(setScores.length - 1); });
   } else {
     for (let i = 0; i < 3; i++) addSet();
+  }
+
+  // かんたん記録の試合はかんたんモードで開く。
+  // silent=true にして、編集のたびに普段の入力方法の好みが書き換わらないようにする。
+  if (m.gamesWon != null && m.gamesLost != null) {
+    gameCount = { my: m.gamesWon, opp: m.gamesLost };
+    setScoreMode('simple', true);
+  } else {
+    gameCount = { my: 0, opp: 0 };
+    setScoreMode('detail', true);
   }
 
   document.querySelector('.submit-btn').textContent = '更新する';
@@ -2823,6 +2969,16 @@ function showToast(message, isError = false) {
 async function submitRecord() {
   const btn = document.querySelector('.submit-btn');
   if (btn.dataset.busy === '1') return; // 二重送信防止
+
+  const isSimple = scoreMode === 'simple';
+
+  // かんたん記録は同じ数だと勝敗が決まらないので保存させない
+  if (isSimple && gameCount.my === gameCount.opp) {
+    updateGameCountHint();
+    showToast('どちらが勝ったか決まりません。ゲームカウントを確認してください', true);
+    return;
+  }
+
   let scoreText = '';
   let myWins = 0, oppWins = 0;
   setScores.forEach(s => {
@@ -2843,8 +2999,12 @@ async function submitRecord() {
     type: selectedType || '不明',
     gender: selectedGender || '',
     matchType: document.getElementById('match-type').value,
-    score: scoreText || '—',
-    win: myWins > oppWins,
+    // 選ばれていない方の値は必ず null にする。両方残ると countSets() が
+    // ゲームカウントを優先し、カードの表示と実際の点数が食い違うため。
+    score: isSimple ? null : (scoreText || '—'),
+    gamesWon: isSimple ? gameCount.my : null,
+    gamesLost: isSimple ? gameCount.opp : null,
+    win: isSimple ? gameCount.my > gameCount.opp : myWins > oppWins,
     tags: [...selectedTags],
     memo: document.getElementById('match-memo').value
   };
@@ -2890,6 +3050,9 @@ async function submitRecord() {
   selectedTags = [];
   document.querySelector('.submit-btn').textContent = '記録する';
   initSets();
+  gameCount = { my: 0, opp: 0 };
+  // 編集で一時的に切り替わっていても、普段の入力方法に戻す
+  applySavedScoreMode();
 
   showScreen('home');
 
@@ -3009,6 +3172,7 @@ loadFromStorage();
 initSets();
 document.getElementById('match-date').value = todayStr();
 applyLastDefaults();
+applySavedScoreMode();
 </script>
 </body>
 </html>
