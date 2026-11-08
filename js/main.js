@@ -282,9 +282,25 @@ const practiceService = {
   },
 };
 
+// 選手ごとの練習項目の設定（players.practice_items）
+const practiceItemsService = {
+  get() {
+    const pid = playerState.getCurrentPlayerId();
+    return playerUI.getPlayers().find(p => p.id === pid)?.practice_items || {};
+  },
+  async save(settings) {
+    const pid = playerState.getCurrentPlayerId();
+    if (!pid) throw new Error('No current player');
+    const row = await players.updatePlayer(pid, { practice_items: settings });
+    playerUI.setPlayers(playerUI.getPlayers().map(p => (p.id === pid ? { ...p, ...row } : p)));
+    return row.practice_items;
+  },
+};
+
 window.matchesService = matchesService;
 window.opponentsService = opponentsService;
 window.practiceService = practiceService;
+window.practiceItemsService = practiceItemsService;
 
 // 選手切替時に matches を再描画
 playerState.onCurrentPlayerChange(() => {

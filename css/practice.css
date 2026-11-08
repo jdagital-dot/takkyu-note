@@ -18,9 +18,7 @@
 }
 .pn-delete-link { margin-top: 14px; color: #c62828; }
 
-.pn-help { font-size: 12px; color: #888; margin: -6px 0 12px; line-height: 1.6; }
-.pn-help .pn-good { color: #2e7d32; }
-.pn-help .pn-issue { color: #e65100; }
+.pn-help { font-size: 12px; color: #888; margin: -6px 0 8px; line-height: 1.6; }
 
 /* ボタン（記録画面の .tag-grid / .tag-btn と同じ見た目。既存のコードが .tag-btn をまとめて操作するため別クラスにする） */
 .pn-grid { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -31,10 +29,31 @@
 .pn-btn:active { transform: scale(0.95); }
 .pn-btn.selected { border-color: #e53935; background: #fff5f5; color: #e53935; }
 
-/* 技術ボタンの4状態（なし=既定の .pn-btn） */
-.pn-tag.pn-st-practiced { border-color: #1a1a2e; background: #eef1f6; color: #1a1a2e; }
-.pn-tag.pn-st-good { border-color: #2e7d32; background: #edf7ee; color: #2e7d32; }
-.pn-tag.pn-st-issue { border-color: #e65100; background: #fff3e8; color: #e65100; }
+/* 見出し行（右端に「項目を編集」） */
+.pn-title-row { display: flex; justify-content: space-between; align-items: center; }
+.pn-edit-link {
+  background: none; border: none; color: #e53935; font-size: 12px; font-weight: 700; cursor: pointer;
+  font-family: inherit; letter-spacing: 0; text-transform: none; padding: 0;
+}
+
+/* 出来栄え（1〜5） */
+.pn-rate-empty { font-size: 13px; color: #aaa; text-align: center; padding: 8px 0; line-height: 1.6; }
+.pn-rate-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid #f3f3f3; }
+.pn-rate-row:first-child { border-top: none; }
+.pn-rate-label { font-size: 14px; font-weight: 600; color: #1a1a2e; display: flex; align-items: center; gap: 6px; min-width: 0; word-break: break-all; }
+.pn-kind { flex-shrink: 0; font-size: 10px; font-weight: 700; border-radius: 6px; padding: 2px 5px; }
+.pn-kind-menu { color: #1a1a2e; background: #eef1f6; }
+.pn-kind-focus { color: #6a5acd; background: #f1effc; }
+.pn-rate-btns { display: flex; gap: 4px; flex-shrink: 0; }
+.pn-rate-btn {
+  width: 34px; height: 34px; border-radius: 50%; border: 2px solid #e8e8e8; background: #fafafa; color: #999;
+  font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; padding: 0;
+}
+.pn-rate-btn:active { transform: scale(0.92); }
+.pn-rate-btn.on { color: #fff; }
+.pn-rate-btn.on.pn-r-high { background: #2e7d32; border-color: #2e7d32; }
+.pn-rate-btn.on.pn-r-mid { background: #546e7a; border-color: #546e7a; }
+.pn-rate-btn.on.pn-r-low { background: #e65100; border-color: #e65100; }
 
 .pn-memo {
   width: 100%; border: 1px solid #e0e0e0; border-radius: 10px; padding: 12px; font-size: 15px;
@@ -55,8 +74,10 @@
 .pn-card-src { font-size: 11px; color: #6a5acd; background: #f1effc; border-radius: 8px; padding: 2px 6px; }
 .pn-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .pn-chip { font-size: 12px; color: #1a1a2e; background: #eef1f6; border-radius: 10px; padding: 3px 8px; }
-.pn-chip-good { color: #2e7d32; background: #edf7ee; }
-.pn-chip-issue { color: #e65100; background: #fff3e8; }
+.pn-chip b { margin-left: 4px; }
+.pn-chip.pn-r-high { color: #2e7d32; background: #edf7ee; }
+.pn-chip.pn-r-mid { color: #455a64; background: #eceff1; }
+.pn-chip.pn-r-low { color: #e65100; background: #fff3e8; }
 .pn-card-memo { margin-top: 8px; font-size: 13px; color: #555; line-height: 1.5; }
 .pn-empty { text-align: center; color: #aaa; font-size: 13px; padding: 20px 0; }
 
@@ -68,3 +89,37 @@
 }
 .pn-save-btn:active { transform: scale(0.98); }
 .pn-save-btn:disabled { opacity: 0.6; }
+
+/* 項目の編集ダイアログ */
+.pn-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; }
+.pn-modal {
+  position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); width: 100%; max-width: 480px;
+  max-height: 85vh; background: #fff; border-radius: 20px 20px 0 0; z-index: 101; display: flex; flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pn-modal-tabs { display: flex; gap: 6px; padding: 16px 16px 8px; }
+.pn-tab {
+  flex: 1; padding: 10px; border-radius: 10px; border: 1px solid #e8e8e8; background: #fafafa; color: #666;
+  font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.pn-tab.on { background: #1a1a2e; border-color: #1a1a2e; color: #fff; }
+.pn-modal-body { overflow-y: auto; padding: 4px 16px 12px; }
+.pn-modal-sub { font-size: 12px; font-weight: 700; color: #888; margin: 14px 0 8px; }
+.pn-modal-note { font-size: 13px; color: #aaa; }
+.pn-edit-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f3f3f3; font-size: 14px; color: #1a1a2e; }
+.pn-x { background: none; border: none; color: #c62828; font-size: 16px; cursor: pointer; padding: 4px 8px; }
+.pn-add-row { display: flex; gap: 8px; margin-top: 10px; }
+.pn-add-row input {
+  flex: 1; min-width: 0; border: 1px solid #e0e0e0; border-radius: 10px; padding: 10px; font-size: 15px; font-family: inherit;
+}
+.pn-add-btn {
+  flex-shrink: 0; border: none; border-radius: 10px; background: #1a1a2e; color: #fff; padding: 0 16px;
+  font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.pn-preset.off { color: #bbb; background: #fff; border-style: dashed; }
+.pn-modal-foot { display: flex; gap: 8px; padding: 10px 16px 16px; border-top: 1px solid #f3f3f3; }
+.pn-cancel-btn {
+  flex: 1; border: 1px solid #e0e0e0; background: #fff; color: #666; border-radius: 14px; font-size: 15px;
+  font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.pn-modal-save { flex: 2; margin-top: 0; }

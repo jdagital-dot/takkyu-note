@@ -1,15 +1,22 @@
 import { supabase } from './supabase-client.js';
+import { legacyToItems } from './practice-tags.js';
 
 const arr = v => (Array.isArray(v) ? v : []);
 
+const RATED = r => (Number.isInteger(r) && r >= 1 && r <= 5 ? r : null);
+
 export function rowToNote(row) {
+  // 最初の版（practiced/good/issues）で保存されたノートは items に変換して読む
+  const items = arr(row.items).length
+    ? arr(row.items)
+        .filter(i => i && (i.kind === 'menu' || i.kind === 'focus') && typeof i.label === 'string')
+        .map(i => ({ kind: i.kind, label: i.label, rating: RATED(i.rating) }))
+    : legacyToItems(arr(row.practiced), arr(row.good), arr(row.issues));
   return {
     id: row.id,
     date: row.date,
     minutes: row.minutes ?? null,
-    practiced: arr(row.practiced),
-    good: arr(row.good),
-    issues: arr(row.issues),
+    items,
     memo: row.memo || '',
     source: row.source || 'app',
   };
@@ -33,9 +40,11 @@ export async function upsertNote(playerId, note) {
     player_id: playerId,
     date: note.date,
     minutes: note.minutes ?? null,
-    practiced: note.practiced || [],
-    good: note.good || [],
-    issues: note.issues || [],
+    items: (note.items || []).map(i => ({ kind: i.kind, label: i.label, rating: i.rating ?? null })),
+    // 最初の版の列は使わない（読み込み時の変換と二重にならないよう空にする）
+    practiced: [],
+    good: [],
+    issues: [],
     memo: (note.memo || '').trim() || null,
     source: note.source || 'app',
   };

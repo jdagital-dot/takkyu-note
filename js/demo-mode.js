@@ -82,25 +82,31 @@ function buildDemoOpponents() {
   ];
 }
 
-// 練習ノートのサンプル（技術の切り替え・週の集計・一覧の見え方を体験できるように散らす）
-function dp(days, minutes, practiced, good, issues, memo = '', source = 'app') {
-  return { id: `demo-pn-${days}`, date: daysAgo(days), minutes, practiced, good, issues, memo, source };
+// 練習ノートのサンプル（項目の選択・出来栄え・週の集計・一覧の見え方を体験できるように散らす）
+const it = (kind, label, rating) => ({ kind, label, rating });
+function dp(days, minutes, items, memo = '', source = 'app') {
+  return { id: `demo-pn-${days}`, date: daysAgo(days), minutes, items, memo, source };
 }
 
 function buildDemoPractice() {
   return {
     'demo-p1': [
-      dp(1, 120, ['サーブ', '3球目', 'フットワーク'], ['サーブ'], ['フットワーク'], '下回転サーブが切れるようになってきた'),
-      dp(2, 90, ['レシーブ', 'ラリー'], [], ['レシーブ'], 'ツッツキが浮いてしまう', 'paper'),
-      dp(4, 150, ['3球目', 'ラリー', 'バック攻め'], ['3球目'], [], ''),
-      dp(5, 0, [], [], [], ''),
-      dp(8, 120, ['サーブ', 'レシーブ', '回転読み'], ['回転読み'], ['サーブ'], '回転の見分けが少しできた'),
+      dp(1, 120, [it('menu', 'サーブ', 4), it('menu', '3球目攻撃', 3), it('menu', 'フットワーク', 2), it('focus', '早く戻る', 2)], '下回転サーブが切れるようになってきた'),
+      dp(2, 90, [it('menu', 'レシーブ', 2), it('menu', 'ツッツキ', 3), it('focus', '低いボール', 2)], 'ツッツキが浮いてしまう', 'paper'),
+      dp(4, 150, [it('menu', 'ドライブ', 4), it('menu', 'オール', 3), it('focus', '体重移動', 4)], ''),
+      dp(5, 0, [], ''),
+      dp(8, 120, [it('menu', 'サーブ', 3), it('menu', 'チキータ', 2), it('focus', '相手をよく見る', 4)], '回転の見分けが少しできた'),
     ],
     'demo-p2': [
-      dp(1, 60, ['フットワーク', 'ラリー'], ['ラリー'], [], 'ラリーが10往復続いた'),
+      dp(1, 60, [it('menu', 'フォア打ち', 5), it('menu', 'フットワーク', 3), it('focus', '足を動かす', 4)], 'ラリーが10往復続いた'),
     ],
   };
 }
+
+// 体験 太郎は「チキータ」を自分の項目に足し、「体力・筋トレ」を非表示にしている例
+const DEMO_PRACTICE_ITEMS = {
+  'demo-p1': { custom: { menu: ['チキータ'], focus: [] }, hidden: { menu: ['体力・筋トレ'], focus: [] } },
+};
 
 let matchesByPlayer = {};
 let opponentsList = [];
@@ -189,6 +195,19 @@ const demoPracticeService = {
   },
 };
 
+const demoPracticeItemsService = {
+  get() {
+    const pid = playerState.getCurrentPlayerId();
+    return (window.playerUI?.getPlayers() || []).find(p => p.id === pid)?.practice_items || {};
+  },
+  async save(settings) {
+    const pid = playerState.getCurrentPlayerId();
+    const list = (window.playerUI?.getPlayers() || []).map(p => (p.id === pid ? { ...p, practice_items: settings } : p));
+    window.playerUI?.setPlayers(list);
+    return settings;
+  },
+};
+
 export function isDemo() {
   return !!window._demoMode;
 }
@@ -203,9 +222,10 @@ export function enter() {
   window.matchesService = demoMatchesService;
   window.opponentsService = demoOpponentsService;
   window.practiceService = demoPracticeService;
+  window.practiceItemsService = demoPracticeItemsService;
 
   playerState.setCurrentPlayerId('demo-p1');
-  if (window.playerUI) window.playerUI.setPlayers(DEMO_PLAYERS.map(p => ({ ...p })));
+  if (window.playerUI) window.playerUI.setPlayers(DEMO_PLAYERS.map(p => ({ ...p, practice_items: DEMO_PRACTICE_ITEMS[p.id] || {} })));
 
   // 選手の追加・編集はクラウド前提のためデモでは案内のみ
   if (window.playerEdit) {

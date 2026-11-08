@@ -229,7 +229,10 @@ function downloadCsv(rows, prefix) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-const PRACTICE_CSV_HEADERS = ['選手', '日付', '練習時間（分）', '練習した技術', 'できた', '課題', '一言', '記録方法'];
+const PRACTICE_CSV_HEADERS = ['選手', '日付', '練習時間（分）', '練習内容（出来栄え1〜5）', '意識すること（出来栄え1〜5）', '一言', '記録方法'];
+// 例: "フォア打ち:4 / ツッツキ:2 / ドライブ"（未評価は名前だけ）
+const itemsText = (n, kind) => n.items.filter(i => i.kind === kind)
+  .map(i => (i.rating ? `${i.label}:${i.rating}` : i.label)).join(' / ');
 
 export async function exportPracticeCsv() {
   const svc = window.practiceService;
@@ -253,9 +256,8 @@ export async function exportPracticeCsv() {
         g.player?.name || '',
         n.date || '',
         n.minutes ?? '',
-        n.practiced.join(' / '),
-        n.good.join(' / '),
-        n.issues.join(' / '),
+        itemsText(n, 'menu'),
+        itemsText(n, 'focus'),
         n.memo || '',
         n.source === 'paper' ? '紙' : 'アプリ',
       ]);
