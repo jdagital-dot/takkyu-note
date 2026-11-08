@@ -113,6 +113,10 @@ function render() {
           <span>試合記録をCSVで書き出し</span>
           ${CHEVRON}
         </button>
+        <button type="button" class="settings-row" onclick="settingsUI.exportPracticeCsv()">
+          <span>練習ノートをCSVで書き出し</span>
+          ${CHEVRON}
+        </button>
       </div>
       <div class="settings-note">全選手の記録を1つのファイルにまとめます。Excelでそのまま開けます。</div>
     </div>
@@ -209,6 +213,63 @@ function ageToGradeLabel(age) {
   return found ? found[1] : String(age);
 }
 
+// 先頭のBOMが無いとExcelで開いたときに日本語が文字化けする
+function downloadCsv(rows, prefix) {
+  const csv = '\uFEFF' + rows.map(r => r.map(csvCell).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const d = new Date();
+  const stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  a.href = url;
+  a.download = `${prefix}-${stamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+const PRACTICE_CSV_HEADERS = ['選手', '日付', '練習時間（分）', '練習した技術', 'できた', '課題', '一言', '記録方法'];
+
+export async function exportPracticeCsv() {
+  const svc = window.practiceService;
+  if (!svc || typeof svc.getAllForExport !== 'function') {
+    toast('書き出しに対応していません', true);
+    return;
+  }
+  toast('書き出しています…');
+  let groups;
+  try {
+    groups = await svc.getAllForExport();
+  } catch (e) {
+    console.error('Practice export failed:', e);
+    toast('書き出しに失敗しました。通信状態を確認してください', true);
+    return;
+  }
+  const rows = [PRACTICE_CSV_HEADERS];
+  for (const g of groups) {
+    for (const n of g.notes) {
+      rows.push([
+        g.player?.name || '',
+        n.date || '',
+        n.minutes ?? '',
+        n.practiced.join(' / '),
+        n.good.join(' / '),
+        n.issues.join(' / '),
+        n.memo || '',
+        n.source === 'paper' ? '紙' : 'アプリ',
+      ]);
+    }
+  }
+  const count = rows.length - 1;
+  if (count === 0) {
+    toast('書き出す練習ノートがありません', true);
+    return;
+  }
+  downloadCsv(rows, 'takkyu-note-practice');
+  toast(`✓ ${count}日分の練習ノートを書き出しました`);
+}
+
 export async function exportCsv() {
   const svc = window.matchesService;
   if (!svc || typeof svc.getAllForExport !== 'function') {
@@ -256,20 +317,7 @@ export async function exportCsv() {
     return;
   }
 
-  // 先頭のBOMが無いとExcelで開いたときに日本語が文字化けする
-  const csv = '﻿' + rows.map(r => r.map(csvCell).join(',')).join('\r\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const d = new Date();
-  const stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  a.href = url;
-  a.download = `takkyu-note-${stamp}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-
+  downloadCsv(rows, 'takkyu-note');
   toast(`✓ ${count}試合を書き出しました`);
 }
 
@@ -370,5 +418,5 @@ export async function confirmDelete() {
 
 window.settingsUI = {
   open, addPlayer, editPlayer, logout, refresh,
-  exportCsv, deleteAccount, confirmDelete, closeModal,
+  exportCsv, exportPracticeCsv, deleteAccount, confirmDelete, closeModal,
 };

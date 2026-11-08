@@ -1,0 +1,70 @@
+/* 練習ノート画面（js/practice-ui.js）。既存の .header .form-section .section-title を土台にし、ボタンは既存と衝突しない pn- のクラスにする */
+
+.pn-date-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pn-date-btn {
+  width: 40px; height: 40px; border-radius: 12px; border: 1px solid #e8e8e8; background: #fafafa;
+  color: #1a1a2e; font-size: 14px; cursor: pointer; font-family: inherit;
+}
+.pn-date-btn:disabled { opacity: 0.3; cursor: default; }
+.pn-date-btn:active:not(:disabled) { transform: scale(0.94); }
+.pn-date-label { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+#pn-date { font-size: 18px; font-weight: 700; color: #1a1a2e; }
+.pn-saved-badge {
+  font-size: 11px; font-weight: 700; color: #2e7d32; background: #edf7ee; border-radius: 10px; padding: 2px 8px;
+}
+.pn-today-link, .pn-delete-link {
+  display: block; margin: 10px auto 0; background: none; border: none; color: #888;
+  font-size: 13px; text-decoration: underline; cursor: pointer; font-family: inherit;
+}
+.pn-delete-link { margin-top: 14px; color: #c62828; }
+
+.pn-help { font-size: 12px; color: #888; margin: -6px 0 12px; line-height: 1.6; }
+.pn-help .pn-good { color: #2e7d32; }
+.pn-help .pn-issue { color: #e65100; }
+
+/* ボタン（記録画面の .tag-grid / .tag-btn と同じ見た目。既存のコードが .tag-btn をまとめて操作するため別クラスにする） */
+.pn-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.pn-btn {
+  border: 2px solid #e8e8e8; border-radius: 20px; padding: 8px 16px; font-size: 13px; font-weight: 600;
+  color: #666; cursor: pointer; transition: all 0.15s; background: #fafafa; user-select: none; font-family: inherit;
+}
+.pn-btn:active { transform: scale(0.95); }
+.pn-btn.selected { border-color: #e53935; background: #fff5f5; color: #e53935; }
+
+/* 技術ボタンの4状態（なし=既定の .pn-btn） */
+.pn-tag.pn-st-practiced { border-color: #1a1a2e; background: #eef1f6; color: #1a1a2e; }
+.pn-tag.pn-st-good { border-color: #2e7d32; background: #edf7ee; color: #2e7d32; }
+.pn-tag.pn-st-issue { border-color: #e65100; background: #fff3e8; color: #e65100; }
+
+.pn-memo {
+  width: 100%; border: 1px solid #e0e0e0; border-radius: 10px; padding: 12px; font-size: 15px;
+  font-family: inherit; box-sizing: border-box; background: #fafafa;
+}
+.pn-memo:focus { outline: none; border-color: #e53935; background: #fff; }
+
+.pn-list-title { padding-left: 0 !important; padding-right: 0 !important; }
+.pn-card {
+  background: #fff; border-radius: 14px; padding: 12px 14px; margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05); cursor: pointer; border: 2px solid transparent;
+}
+.pn-card:active { transform: scale(0.99); }
+.pn-card-current { border-color: #e53935; }
+.pn-card-head { display: flex; align-items: center; gap: 8px; }
+.pn-card-date { font-weight: 700; color: #1a1a2e; font-size: 14px; }
+.pn-card-time { font-size: 12px; color: #666; background: #f3f4f6; border-radius: 8px; padding: 2px 8px; }
+.pn-card-src { font-size: 11px; color: #6a5acd; background: #f1effc; border-radius: 8px; padding: 2px 6px; }
+.pn-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.pn-chip { font-size: 12px; color: #1a1a2e; background: #eef1f6; border-radius: 10px; padding: 3px 8px; }
+.pn-chip-good { color: #2e7d32; background: #edf7ee; }
+.pn-chip-issue { color: #e65100; background: #fff3e8; }
+.pn-card-memo { margin-top: 8px; font-size: 13px; color: #555; line-height: 1.5; }
+.pn-empty { text-align: center; color: #aaa; font-size: 13px; padding: 20px 0; }
+
+/* 保存ボタン（記録画面の .submit-btn と同じ見た目。既存のセレクタと衝突しないよう別クラスにする） */
+.pn-save-btn {
+  width: 100%; background: linear-gradient(135deg, #e53935, #c62828); color: #fff; border: none;
+  border-radius: 14px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 16px;
+  font-family: inherit; box-shadow: 0 4px 16px rgba(229,57,53,0.3); transition: transform 0.1s;
+}
+.pn-save-btn:active { transform: scale(0.98); }
+.pn-save-btn:disabled { opacity: 0.6; }

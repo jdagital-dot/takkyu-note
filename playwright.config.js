@@ -4,7 +4,7 @@ dotenv.config({ path: '.env.local' });
 export default {
   testDir: './tests',
   use: {
-    baseURL: 'https://pingpong-app-one.vercel.app',
+    baseURL: process.env.BASE_URL || 'https://pingpong-app-one.vercel.app',
     headless: true,
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

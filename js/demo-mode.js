@@ -82,8 +82,29 @@ function buildDemoOpponents() {
   ];
 }
 
+// 練習ノートのサンプル（技術の切り替え・週の集計・一覧の見え方を体験できるように散らす）
+function dp(days, minutes, practiced, good, issues, memo = '', source = 'app') {
+  return { id: `demo-pn-${days}`, date: daysAgo(days), minutes, practiced, good, issues, memo, source };
+}
+
+function buildDemoPractice() {
+  return {
+    'demo-p1': [
+      dp(1, 120, ['サーブ', '3球目', 'フットワーク'], ['サーブ'], ['フットワーク'], '下回転サーブが切れるようになってきた'),
+      dp(2, 90, ['レシーブ', 'ラリー'], [], ['レシーブ'], 'ツッツキが浮いてしまう', 'paper'),
+      dp(4, 150, ['3球目', 'ラリー', 'バック攻め'], ['3球目'], [], ''),
+      dp(5, 0, [], [], [], ''),
+      dp(8, 120, ['サーブ', 'レシーブ', '回転読み'], ['回転読み'], ['サーブ'], '回転の見分けが少しできた'),
+    ],
+    'demo-p2': [
+      dp(1, 60, ['フットワーク', 'ラリー'], ['ラリー'], [], 'ラリーが10往復続いた'),
+    ],
+  };
+}
+
 let matchesByPlayer = {};
 let opponentsList = [];
+let practiceByPlayer = {};
 
 const demoMatchesService = {
   getCurrent() {
@@ -142,6 +163,32 @@ const demoOpponentsService = {
   },
 };
 
+const demoPracticeService = {
+  getCurrent() {
+    const pid = playerState.getCurrentPlayerId();
+    return (practiceByPlayer[pid] || []).slice();
+  },
+  async refreshCurrent(onUpdate) {
+    onUpdate?.(this.getCurrent());
+  },
+  async save(note) {
+    const pid = playerState.getCurrentPlayerId();
+    const list = (practiceByPlayer[pid] || []).filter(x => x.date !== note.date);
+    const n = { ...note, id: note.id || `demo-pn-new-${Date.now()}`, memo: (note.memo || '').trim() };
+    list.push(n);
+    list.sort((a, b) => (a.date < b.date ? 1 : -1));
+    practiceByPlayer[pid] = list;
+    return { ...n };
+  },
+  async delete(id) {
+    const pid = playerState.getCurrentPlayerId();
+    practiceByPlayer[pid] = (practiceByPlayer[pid] || []).filter(x => x.id !== id);
+  },
+  async getAllForExport() {
+    return DEMO_PLAYERS.map(p => ({ player: { ...p }, notes: (practiceByPlayer[p.id] || []).slice() }));
+  },
+};
+
 export function isDemo() {
   return !!window._demoMode;
 }
@@ -150,10 +197,12 @@ export function enter() {
   window._demoMode = true;
   matchesByPlayer = buildDemoMatches();
   opponentsList = buildDemoOpponents();
+  practiceByPlayer = buildDemoPractice();
 
   // サービス層を差し替え（UIコードはそのまま動く）
   window.matchesService = demoMatchesService;
   window.opponentsService = demoOpponentsService;
+  window.practiceService = demoPracticeService;
 
   playerState.setCurrentPlayerId('demo-p1');
   if (window.playerUI) window.playerUI.setPlayers(DEMO_PLAYERS.map(p => ({ ...p })));

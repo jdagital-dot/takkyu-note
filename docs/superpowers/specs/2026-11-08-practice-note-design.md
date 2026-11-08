@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS practice_notes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE,
   date date NOT NULL,
-  minutes int,                              -- 練習時間（分）。休み・未記入は null
+  minutes int,                              -- 練習時間（分）。休みは 0、未記入は null
   practiced jsonb NOT NULL DEFAULT '[]',    -- 練習した技術
   good jsonb NOT NULL DEFAULT '[]',         -- ◎できた
   issues jsonb NOT NULL DEFAULT '[]',       -- △課題
@@ -91,7 +91,8 @@ CREATE TABLE IF NOT EXISTS practice_notes (
 
 | 表示 | 保存値（minutes） |
 |---|---|
-| 休み | null（ノート自体は作れる） |
+| 休み | 0 |
+| （未選択） | null |
 | 〜1h | 60 |
 | 1.5h | 90 |
 | 2h | 120 |

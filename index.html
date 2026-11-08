@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>卓球記録ノート</title>
 <link rel="manifest" href="/manifest.json">
+<link rel="stylesheet" href="/css/practice.css">
 <meta name="theme-color" content="#e53935">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1114,6 +1115,11 @@
     </div>
   </div>
 
+  <!-- 練習ノート画面（中身は js/practice-ui.js が描画） -->
+  <div class="screen" id="screen-practice">
+    <div id="practice-root"></div>
+  </div>
+
   <!-- 記録画面 -->
   <div class="screen" id="screen-record">
     <div class="header">
@@ -1395,6 +1401,14 @@
         </svg>
       </span>
       <span class="nav-label">日記</span>
+    </div>
+    <div class="nav-item" id="nav-practice" onclick="showScreen('practice')" role="button" aria-label="練習">
+      <span class="nav-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4.5A2.5 2.5 0 016.5 2H20v17H6.5A2.5 2.5 0 004 21.5v-17z"/><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="13" y2="11"/>
+        </svg>
+      </span>
+      <span class="nav-label">練習</span>
     </div>
     <div class="nav-item" id="nav-record" onclick="showScreen('record')" role="button" aria-label="記録">
       <span class="nav-icon">
@@ -2853,6 +2867,7 @@ function showScreen(name) {
   if (navItem) navItem.classList.add('active');
   document.getElementById('fab').style.display = name === 'home' ? 'flex' : 'none';
   if (name === 'record') syncAllWheels();
+  if (name === 'practice' && window.practiceUI) window.practiceUI.open();
 }
 
 let abSelectedHand = '';

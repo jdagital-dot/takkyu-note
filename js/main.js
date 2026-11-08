@@ -13,6 +13,9 @@ import * as opponents from './opponents.js';
 import * as opponentsCache from './opponents-cache.js';
 import * as demoMode from './demo-mode.js';
 import * as settingsUI from './settings-ui.js';
+import * as practiceNotes from './practice-notes.js';
+import * as practiceCache from './practice-cache.js';
+import './practice-ui.js';
 
 window.supabase = supabase;
 window.auth = auth;
@@ -28,6 +31,7 @@ function clearLocalState() {
   playerUI.clearCache();
   matchesCache.clearAll();
   opponentsCache.clearAll();
+  practiceCache.clearAll();
 }
 
 async function performLogout() {
@@ -95,6 +99,7 @@ async function routeAfterLogin(user = null) {
     if (typeof window.renderMatches === 'function') window.renderMatches();
   });
   opponentsService.refresh();
+  practiceService.refreshCurrent(() => window.practiceUI?.refresh());
 
   console.log('[routeAfterLogin] done');
 }
@@ -234,14 +239,59 @@ const opponentsService = {
   },
 };
 
+// 練習ノート（1日1件。保存は upsert）
+const practiceService = {
+  getCurrent() {
+    return practiceCache.load(playerState.getCurrentPlayerId());
+  },
+  async refreshCurrent(onUpdate) {
+    const pid = playerState.getCurrentPlayerId();
+    if (!pid) return;
+    try {
+      const rows = await practiceNotes.listByPlayer(pid);
+      const list = rows.map(practiceNotes.rowToNote);
+      practiceCache.save(pid, list);
+      onUpdate?.(list);
+    } catch (e) {
+      console.error('Failed to refresh practice notes:', e);
+    }
+  },
+  async save(note) {
+    const pid = playerState.getCurrentPlayerId();
+    if (!pid) throw new Error('No current player');
+    const n = practiceNotes.rowToNote(await practiceNotes.upsertNote(pid, note));
+    const list = practiceCache.load(pid).filter(x => x.date !== n.date);
+    list.push(n);
+    list.sort((a, b) => (a.date < b.date ? 1 : -1));
+    practiceCache.save(pid, list);
+    return n;
+  },
+  async delete(id) {
+    const pid = playerState.getCurrentPlayerId();
+    if (!pid) throw new Error('No current player');
+    await practiceNotes.deleteNote(id);
+    practiceCache.save(pid, practiceCache.load(pid).filter(x => x.id !== id));
+  },
+  async getAllForExport() {
+    const out = [];
+    for (const p of playerUI.getPlayers()) {
+      const rows = await practiceNotes.listByPlayer(p.id);
+      out.push({ player: p, notes: rows.map(practiceNotes.rowToNote) });
+    }
+    return out;
+  },
+};
+
 window.matchesService = matchesService;
 window.opponentsService = opponentsService;
+window.practiceService = practiceService;
 
 // 選手切替時に matches を再描画
 playerState.onCurrentPlayerChange(() => {
   matchesService.refreshCurrent(() => {
     if (typeof window.renderMatches === 'function') window.renderMatches();
   });
+  window.practiceService.refreshCurrent(() => window.practiceUI?.refresh());
 });
 
 auth.onAuthStateChange(async (event, session) => {
