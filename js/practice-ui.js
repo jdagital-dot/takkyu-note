@@ -11,6 +11,7 @@ let currentDate = todayISO();
 let draft = emptyNote(currentDate);
 let dirty = false;
 let saving = false;
+let draftPlayerId = playerState.getCurrentPlayerId(); // 下書きがどの選手のものか
 
 const svc = () => window.practiceService;
 const notes = () => (svc() ? svc().getCurrent() : []);
@@ -19,6 +20,7 @@ const clone = n => ({ ...n, practiced: [...n.practiced], good: [...n.good], issu
 const toast = (msg, isError = false) => window.showToast && window.showToast(msg, isError);
 
 function loadDraft() {
+  draftPlayerId = playerState.getCurrentPlayerId();
   const n = findNote(currentDate);
   draft = n ? clone(n) : emptyNote(currentDate);
   dirty = false;
@@ -224,11 +226,18 @@ function onInput(e) {
 document.addEventListener('click', onClick);
 document.addEventListener('input', onInput);
 
-// 選手を切り替えたら、その選手の今日のノートを開き直す
-playerState.onCurrentPlayerChange(() => {
-  currentDate = todayISO();
-  dirty = false;
-  loadDraft();
+// 選手を切り替えたら、その選手の今日のノートを開き直す。
+// ログイン直後の読み込みでは同じ選手が設定し直されることがあるので、
+// 本当に別の選手になったときだけ日付と下書きをリセットする（入力中の内容を消さない）
+playerState.onCurrentPlayerChange(id => {
+  if (id && draftPlayerId && id !== draftPlayerId) {
+    currentDate = todayISO();
+    dirty = false;
+    loadDraft();
+  } else {
+    draftPlayerId = id;
+    if (!dirty) loadDraft();
+  }
   render();
 });
 

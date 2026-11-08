@@ -117,3 +117,16 @@ test('練習ノート: ログイン中は保存した内容が再読み込み後
   await page.click('.pn-delete-link');
   await expect(page.locator('.pn-card', { hasText: date })).toHaveCount(0, { timeout: 15000 });
 });
+
+test('練習ノート: 同じ選手が設定し直されても、開いている日付と入力中の内容は消えない', async ({ page }) => {
+  await enterDemo(page);
+  await page.click('#nav-practice');
+  await page.click('[data-action="prev-day"]');
+  await page.click('[data-action="prev-day"]');
+  const date = await page.locator('#pn-date').textContent();
+  await page.click('#pn-tags button[data-tag="メンタル"]');
+  // ログイン直後の読み込みと同じく、同じ選手IDが設定し直される
+  await page.evaluate(() => window.playerState.setCurrentPlayerId(window.playerState.getCurrentPlayerId()));
+  await expect(page.locator('#pn-date')).toHaveText(date);
+  await expect(page.locator('#pn-tags button[data-tag="メンタル"]')).toHaveClass(/pn-st-practiced/);
+});
