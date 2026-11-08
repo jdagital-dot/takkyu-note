@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { loginWithEmail } from './helpers/login.js';
 
 // 体験モードで練習ノートを操作する（DB不要）
 async function enterDemo(page) {
@@ -78,4 +79,41 @@ test('練習ノート: 前の日に移動して過去のノートを開ける', 
   await expect(page.locator('#pn-memo')).toHaveValue('下回転サーブが切れるようになってきた');
   await page.click('.pn-today-link');
   await expect(page.locator('.pn-today-link')).toHaveCount(0);
+});
+
+// ログインして実際のDBに保存する（practice_notes テーブルが必要）
+
+test('練習ノート: ログイン中は保存した内容が再読み込み後も残り、削除もできる', async ({ page }) => {
+  test.skip(!process.env.TEST_EMAIL, 'TEST_EMAIL が未設定');
+  await loginWithEmail(page, process.env.TEST_EMAIL, process.env.TEST_PASSWORD);
+  await page.click('#nav-practice');
+  // 他のテストデータと重ならないよう 3日前の日付で試す
+  for (let i = 0; i < 3; i++) await page.click('[data-action="prev-day"]');
+  if (await page.locator('.pn-delete-link').isVisible().catch(() => false)) {
+    page.once('dialog', d => d.accept());
+    await page.click('.pn-delete-link');
+    await expect(page.locator('.pn-saved-badge')).toHaveCount(0);
+  }
+  const date = await page.locator('#pn-date').textContent();
+
+  await page.click('#pn-time button:has-text("1.5h")');
+  const cut = page.locator('#pn-tags button[data-tag="回転読み"]');
+  await cut.click(); await cut.click(); // ◎できた
+  await page.fill('#pn-memo', 'E2Eテスト');
+  await page.click('#pn-save');
+  await expect(page.locator('.pn-saved-badge')).toBeVisible({ timeout: 15000 });
+
+  // 再読み込みしても残っている（DBから取り直す）
+  await page.reload();
+  await page.waitForSelector('#screen-home.active', { timeout: 15000 });
+  await page.click('#nav-practice');
+  const card = page.locator('.pn-card', { hasText: date });
+  await expect(card).toContainText('◎回転読み', { timeout: 15000 });
+  await expect(card).toContainText('E2Eテスト');
+
+  // 後片付け
+  await card.click();
+  page.once('dialog', d => d.accept());
+  await page.click('.pn-delete-link');
+  await expect(page.locator('.pn-card', { hasText: date })).toHaveCount(0, { timeout: 15000 });
 });
